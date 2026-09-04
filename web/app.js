@@ -234,30 +234,37 @@ function exportMemories() {
 
 /* --------------------------------------------------------------- carte */
 const MAP = (function () {
-  const LAND = window.JB_LAND;
-  let cv, ctx, W, H, land, night, lastNight = 0;
-  const X = lon => (lon + 180) / 360 * W, Y = lat => (90 - lat) / 180 * H;
+  let map, satMarker, staMarker, linkLine, trackPast, trackFuture, footprint, nightLayer,
+      wxLayer = null, lastNight = 0;
 
   function build() {
-    cv = $('worldmap'); if (!cv) return false;
-    W = cv.width; H = cv.height; ctx = cv.getContext('2d');
-    const off = document.createElement('canvas'); off.width = W; off.height = H;
-    const oc = off.getContext('2d'); oc.fillStyle = '#0d1728';
-    for (const k in LAND) {
-      oc.beginPath();
-      LAND[k].forEach((p, i) => i ? oc.lineTo(X(p[0]), Y(p[1])) : oc.moveTo(X(p[0]), Y(p[1])));
-      oc.closePath(); oc.fill();
-    }
-    const px = oc.getImageData(0, 0, W, H).data;
-    land = document.createElement('canvas'); land.width = W; land.height = H;
-    const lc = land.getContext('2d'); const STEP = 7;
-    for (let y = STEP; y < H; y += STEP) for (let x = STEP; x < W; x += STEP) {
-      if (px[(y * W + x) * 4 + 3] > 10) {
-        lc.beginPath(); lc.fillStyle = 'rgba(90,170,175,0.55)';
-        lc.arc(x, y, 1.35, 0, 6.283); lc.fill();
-      }
-    }
-    night = document.createElement('canvas'); night.width = W; night.height = H;
+    const el = $('worldmap'); if (!el || typeof L === 'undefined') return false;
+    map = L.map(el, { worldCopyJump: true }).setView([S.station.lat, S.station.lon], 4);
+
+    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16,
+      attribution: 'Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16
+    }).addTo(map);
+
+    nightLayer = L.polygon([], { stroke: false, fillColor: '#04080f', fillOpacity: 0.55, interactive: false }).addTo(map);
+    trackPast = L.polyline([], { color: '#4be3c7', weight: 2, opacity: 0.35, interactive: false }).addTo(map);
+    trackFuture = L.polyline([], { color: '#4be3c7', weight: 2.5, opacity: 0.85, interactive: false }).addTo(map);
+    footprint = L.polygon([], { color: 'rgba(75,227,199,0.4)', weight: 1.5, fillColor: '#4be3c7', fillOpacity: 0.08, interactive: false }).addTo(map);
+    linkLine = L.polyline([], { color: '#ffb454', weight: 1.5, opacity: 0.65, dashArray: '6,6', interactive: false }).addTo(map);
+
+    staMarker = L.marker([S.station.lat, S.station.lon], {
+      icon: L.divIcon({ className: '', iconAnchor: [5, 10],
+        html: '<div class="sat-icon station"><span class="dot"></span>' + S.station.callsign + '</div>' })
+    }).addTo(map);
+
+    satMarker = L.marker([0, 0], {
+      icon: L.divIcon({ className: '', iconAnchor: [5, 10], html: '<div class="sat-icon sat"><span class="dot"></span>—</div>' })
+    }).addTo(map);
+
+    window.addEventListener('resize', () => map && map.invalidateSize());
     return true;
   }
 
@@ -265,90 +272,69 @@ const MAP = (function () {
     const d = (now / 86400000) - 10957.5;
     const g = (357.529 + 0.98560028 * d) * D;
     const q = 280.459 + 0.98564736 * d;
-    const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D;
-    const dec = Math.asin(Math.sin(23.439 * D) * Math.sin(L)) / D;
+    const Lc = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D;
+    const dec = Math.asin(Math.sin(23.439 * D) * Math.sin(Lc)) / D;
     let lon = 180 - ((now / 3600000) % 24) * 15;
     lon = ((lon + 180) % 360 + 360) % 360 - 180;
     return { lat: dec, lon };
   }
 
-  function buildNight(now) {
-    const nc = night.getContext('2d'); nc.clearRect(0, 0, W, H);
-    const s = subsolar(now), CS = 6; nc.fillStyle = 'rgba(4,8,16,0.62)';
-    for (let y = 0; y < H; y += CS) {
-      const lat = 90 - (y / H) * 180;
-      for (let x = 0; x < W; x += CS) {
-        const lon = (x / W) * 360 - 180;
-        const cz = Math.sin(s.lat * D) * Math.sin(lat * D) + Math.cos(s.lat * D) * Math.cos(lat * D) * Math.cos((lon - s.lon) * D);
-        if (cz < -0.02) nc.fillRect(x, y, CS, CS);
-      }
+  /* courbe du terminateur jour/nuit + fermeture par le pôle plongé dans la nuit */
+  function nightPolygon(now) {
+    const s = subsolar(now);
+    let dec = s.lat; if (Math.abs(dec) < 0.2) dec = dec < 0 ? -0.2 : 0.2;
+    const decR = dec * D, pts = [];
+    for (let lon = -180; lon <= 180; lon += 4) {
+      const lat = Math.atan(-Math.cos((lon - s.lon) * D) / Math.tan(decR)) / D;
+      pts.push([lat, lon]);
     }
+    const darkPole = dec > 0 ? -90 : 90;
+    pts.push([darkPole, 180], [darkPole, -180]);
+    return pts;
+  }
+
+  /* découpe une polyligne lat/lon en segments à chaque franchissement de l'antiméridien */
+  function splitAtDateline(points) {
+    const segs = []; let seg = [];
+    for (const p of points) {
+      if (seg.length && Math.abs(p[1] - seg[seg.length - 1][1]) > 180) { segs.push(seg); seg = []; }
+      seg.push(p);
+    }
+    if (seg.length) segs.push(seg);
+    return segs;
   }
 
   function draw() {
-    if (!ctx || !S.tracked) return;
+    if (!map || !S.tracked) return;
     const now = Date.now();
-    if (now - lastNight > 60000) { buildNight(now); lastNight = now; }
+    if (now - lastNight > 60000) { nightLayer.setLatLngs(nightPolygon(now)); lastNight = now; }
     const rec = S.tracked.rec;
     const st = stateAt(rec, new Date(now));
     if (!st) return;
 
-    ctx.fillStyle = '#070c17'; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(40,60,90,0.45)'; ctx.lineWidth = 1;
-    for (let lon = -180; lon <= 180; lon += 30) { ctx.beginPath(); ctx.moveTo(X(lon), 0); ctx.lineTo(X(lon), H); ctx.stroke(); }
-    for (let lat = -60; lat <= 60; lat += 30) { ctx.beginPath(); ctx.moveTo(0, Y(lat)); ctx.lineTo(W, Y(lat)); ctx.stroke(); }
-    ctx.strokeStyle = 'rgba(75,227,199,0.22)'; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
-    ctx.drawImage(land, 0, 0); ctx.drawImage(night, 0, 0);
-
     // trace au sol : une orbite avant / après
     const period = 2 * Math.PI / rec.no * 60 * 1000;   // no en rad/min
-    for (const seg of [[-period, 0, 'rgba(75,227,199,0.20)', 2], [0, period, 'rgba(75,227,199,0.75)', 2.5]]) {
-      ctx.beginPath(); ctx.strokeStyle = seg[2]; ctx.lineWidth = seg[3];
-      let prev = null;
-      for (let dt = seg[0]; dt <= seg[1]; dt += period / 90) {
-        const p = stateAt(rec, new Date(now + dt)); if (!p) continue;
-        const x = X(p.lon), y = Y(p.lat);
-        if (prev === null) ctx.moveTo(x, y);
-        else if (Math.abs(x - prev) > W / 2) { ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y); }
-        else ctx.lineTo(x, y);
-        prev = x;
-      }
-      ctx.stroke();
-    }
+    const past = [], future = [];
+    for (let dt = -period; dt <= 0; dt += period / 90) { const p = stateAt(rec, new Date(now + dt)); if (p) past.push([p.lat, p.lon]); }
+    for (let dt = 0; dt <= period; dt += period / 90) { const p = stateAt(rec, new Date(now + dt)); if (p) future.push([p.lat, p.lon]); }
+    trackPast.setLatLngs(splitAtDateline(past));
+    trackFuture.setLatLngs(splitAtDateline(future));
 
-    // empreinte
-    const RE = 6371, r = RE + st.alt, foot = Math.acos(RE / r);
-    const sx = X(st.lon), sy = Y(st.lat);
-    ctx.beginPath(); let lx = null;
+    // empreinte radio
+    const RE = 6371, r = RE + st.alt, foot = Math.acos(RE / r), ring = [];
     for (let a = 0; a <= 360; a += 3) {
       const br = a * D;
       const la = Math.asin(Math.sin(st.lat * D) * Math.cos(foot) + Math.cos(st.lat * D) * Math.sin(foot) * Math.cos(br));
       const lo = st.lon * D + Math.atan2(Math.sin(br) * Math.sin(foot) * Math.cos(st.lat * D), Math.cos(foot) - Math.sin(st.lat * D) * Math.sin(la));
-      const lod = ((lo / D + 180) % 360 + 360) % 360 - 180;
-      const x = X(lod), y = Y(la / D);
-      if (lx === null || Math.abs(x - lx) > W / 2) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      lx = x;
+      ring.push([la / D, ((lo / D + 180) % 360 + 360) % 360 - 180]);
     }
-    ctx.fillStyle = 'rgba(75,227,199,0.10)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(75,227,199,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+    footprint.setLatLngs(splitAtDateline(ring));
 
-    // station + liaison
-    const tx = X(S.station.lon), ty = Y(S.station.lat);
-    if (st.el > 0) {
-      ctx.beginPath(); ctx.setLineDash([6, 5]); ctx.strokeStyle = 'rgba(255,180,84,0.65)';
-      ctx.lineWidth = 1.5; ctx.moveTo(tx, ty); ctx.lineTo(sx, sy); ctx.stroke(); ctx.setLineDash([]);
-    }
-    ctx.beginPath(); ctx.fillStyle = '#ffb454'; ctx.shadowColor = '#ffb454'; ctx.shadowBlur = 12;
-    ctx.arc(tx, ty, 6, 0, 6.283); ctx.fill(); ctx.shadowBlur = 0;
-    ctx.font = '500 20px JetBrains Mono, monospace'; ctx.fillStyle = 'rgba(255,180,84,0.9)';
-    ctx.fillText(S.station.callsign, tx + 12, ty + 6);
-
-    ctx.beginPath(); ctx.fillStyle = '#4be3c7'; ctx.shadowColor = '#4be3c7'; ctx.shadowBlur = 16;
-    ctx.arc(sx, sy, 8, 0, 6.283); ctx.fill(); ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.strokeStyle = 'rgba(75,227,199,0.8)'; ctx.lineWidth = 1.5;
-    ctx.arc(sx, sy, 14, 0, 6.283); ctx.stroke();
-    ctx.fillStyle = 'rgba(232,240,245,0.95)'; ctx.font = '600 20px JetBrains Mono, monospace';
-    ctx.fillText(S.tracked.name.split(' ')[0], sx + 20, sy - 10);
+    // station, satellite, liaison
+    satMarker.setLatLng([st.lat, st.lon]);
+    satMarker.setIcon(L.divIcon({ className: '', iconAnchor: [5, 10],
+      html: '<div class="sat-icon sat"><span class="dot"></span>' + S.tracked.name.split(' ')[0] + '</div>' }));
+    linkLine.setLatLngs(st.el > 0 ? [[S.station.lat, S.station.lon], [st.lat, st.lon]] : []);
 
     // lectures + Doppler live
     const rr = rangeRate(rec, new Date(now));
@@ -376,7 +362,26 @@ const MAP = (function () {
     });
   }
 
-  return { build, draw };
+  function setWeather(points) {
+    if (!map) return;
+    if (wxLayer) wxLayer.clearLayers(); else wxLayer = L.layerGroup().addTo(map);
+    (points || []).forEach(p => {
+      if (p.lat == null || p.lon == null) return;
+      const marker = L.marker([p.lat, p.lon], {
+        icon: L.divIcon({ className: '', iconAnchor: [14, 14],
+          html: '<div class="wx-icon">' + p.icon + '<div class="t">' + (p.temp != null ? Math.round(p.temp) + '°' : '—') + '</div></div>' })
+      });
+      marker.bindPopup(
+        '<b>' + p.dir + '</b><br>' + p.label +
+        '<br>' + (p.temp != null ? p.temp.toFixed(1) + ' °C' : '—') +
+        ' · vent ' + (p.wind != null ? Math.round(p.wind) + ' km/h' : '—') +
+        '<br>nébulosité ' + (p.cloud != null ? p.cloud + ' %' : '—')
+      );
+      wxLayer.addLayer(marker);
+    });
+  }
+
+  return { build, draw, setWeather };
 })();
 
 /* ------------------------------------------------------------------ boucle */
@@ -417,13 +422,20 @@ async function boot() {
       $('banner').className = 'previewtag bad';
       return;
     }
+    if (typeof L === 'undefined') {
+      $('banner').textContent = 'Leaflet non chargé : le serveur n\'a pas pu le télécharger. Vérifie la connexion internet de JB-SERVER puis recharge.';
+      $('banner').className = 'previewtag bad';
+      return;
+    }
     computeAll();
     MAP.build();
     loadIssStatus();
+    loadWeather();
     setInterval(tickClock, 1000); tickClock();
     setInterval(() => { MAP.draw(); drawPolar(); }, 1000); MAP.draw();
     setInterval(computeAll, 15 * 60 * 1000);
     setInterval(loadIssStatus, 30 * 60 * 1000);
+    setInterval(loadWeather, 30 * 60 * 1000);
     setInterval(reloadTle, 30 * 60 * 1000);      // le serveur rafraîchit toutes les heures
   } catch (e) {
     $('banner').textContent = 'Erreur de démarrage : ' + e.message;
@@ -488,6 +500,16 @@ function shortMode(m) {
   if (m.type === 'digi') return 'Digipeater';
   if (m.type === 'sstv') return 'SSTV';
   return 'FM ' + (m.up && m.down && m.up < 200 ? 'V/U' : 'U/V');
+}
+
+/* ---------------------------------------------------------------- météo */
+async function loadWeather() {
+  let data;
+  try { data = await fetch('/api/weather').then(r => r.json()); }
+  catch (e) { data = { points: [], error: e.message }; }
+  S.weather = data;
+  $('wxradius').textContent = data.radius_km || S.station.weather_radius_km || 100;
+  MAP.setWeather(data.points || []);
 }
 
 /* ------------------------------------------------------------- statut ISS */

@@ -17,6 +17,7 @@ Le serveur :
 
 import argparse
 import json
+import math
 import os
 import re
 import ssl
@@ -52,6 +53,37 @@ SATJS_URLS = [
 ]
 SATJS_FILE = os.path.join(VENDOR, "satellite.min.js")
 
+# carte : tuiles réelles via Leaflet (mises en cache localement au 1er lancement)
+LEAFLET_JS_URLS = [
+    "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js",
+]
+LEAFLET_CSS_URLS = [
+    "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css",
+]
+LEAFLET_JS_FILE = os.path.join(VENDOR, "leaflet.js")
+LEAFLET_CSS_FILE = os.path.join(VENDOR, "leaflet.css")
+
+# météo autour de la station (Open-Meteo — gratuit, sans clé)
+WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
+WEATHER_CACHE = os.path.join(DATA, "weather_cache.json")
+WEATHER_MAX_AGE = 1800           # 30 min
+
+WMO = {
+    0: ("Ciel dégagé", "☀️"), 1: ("Généralement dégagé", "🌤"), 2: ("Partiellement nuageux", "⛅"),
+    3: ("Couvert", "☁️"),
+    45: ("Brouillard", "🌫"), 48: ("Brouillard givrant", "🌫"),
+    51: ("Bruine légère", "🌦"), 53: ("Bruine", "🌦"), 55: ("Bruine forte", "🌦"),
+    56: ("Bruine verglaçante", "🌧"), 57: ("Bruine verglaçante forte", "🌧"),
+    61: ("Pluie légère", "🌧"), 63: ("Pluie", "🌧"), 65: ("Pluie forte", "🌧"),
+    66: ("Pluie verglaçante", "🌧"), 67: ("Pluie verglaçante forte", "🌧"),
+    71: ("Neige légère", "🌨"), 73: ("Neige", "🌨"), 75: ("Neige forte", "🌨"), 77: ("Neige en grains", "🌨"),
+    80: ("Averses légères", "🌦"), 81: ("Averses", "🌧"), 82: ("Averses violentes", "⛈"),
+    85: ("Averses de neige", "🌨"), 86: ("Averses de neige fortes", "🌨"),
+    95: ("Orage", "⛈"), 96: ("Orage + grêle", "⛈"), 99: ("Orage violent + grêle", "⛈"),
+}
+
 STATION_FILE = os.path.join(DATA, "station.json")
 QSO_FILE = os.path.join(DATA, "qso.json")
 SATS_FILE = os.path.join(DATA, "satellites.json")
@@ -70,7 +102,8 @@ DEFAULT_STATION = {
     "min_elevation_deg": 5,
     "horizon_deg": 0,
     "timezone": "Europe/Paris",
-    "forecast_hours": 48
+    "forecast_hours": 48,
+    "weather_radius_km": 100
 }
 
 _lock = threading.Lock()
@@ -172,7 +205,67 @@ def tle_worker():
             refresh_iss_status()
         except Exception as e:
             log("worker ISS : %s" % e)
+        try:
+            refresh_weather()
+        except Exception as e:
+            log("worker météo : %s" % e)
         time.sleep(900)          # contrôle toutes les 15 min, rafraîchit si > 1 h
+
+
+# --------------------------------------------------------------- météo locale
+def dest_point(lat, lon, bearing_deg, dist_km):
+    """Point à `dist_km` de (lat, lon) sur le cap `bearing_deg` (grand cercle)."""
+    R = 6371.0
+    lat1, lon1, brng = math.radians(lat), math.radians(lon), math.radians(bearing_deg)
+    d_r = dist_km / R
+    lat2 = math.asin(math.sin(lat1) * math.cos(d_r) + math.cos(lat1) * math.sin(d_r) * math.cos(brng))
+    lon2 = lon1 + math.atan2(math.sin(brng) * math.sin(d_r) * math.cos(lat1),
+                              math.cos(d_r) - math.sin(lat1) * math.sin(lat2))
+    return math.degrees(lat2), (math.degrees(lon2) + 540) % 360 - 180
+
+
+def refresh_weather(force=False):
+    cache = read_json(WEATHER_CACHE, {})
+    if cache.get("points") and time.time() - cache.get("fetched_at", 0) < WEATHER_MAX_AGE and not force:
+        return cache
+
+    station = read_json(STATION_FILE, DEFAULT_STATION)
+    lat, lon = station.get("lat", 0), station.get("lon", 0)
+    radius = station.get("weather_radius_km", 100)
+    dirs = [("N", 0), ("NE", 45), ("E", 90), ("SE", 135), ("S", 180), ("SW", 225), ("W", 270), ("NW", 315)]
+    pts = [("Station", lat, lon)] + [(name,) + dest_point(lat, lon, b, radius) for name, b in dirs]
+
+    try:
+        lats = ",".join("%.4f" % p[1] for p in pts)
+        lons = ",".join("%.4f" % p[2] for p in pts)
+        url = (WEATHER_URL + "?latitude=%s&longitude=%s"
+               "&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,precipitation"
+               "&timezone=auto" % (lats, lons))
+        data = json.loads(http_get(url, timeout=20))
+        rows = data if isinstance(data, list) else [data]
+        out = []
+        for (name, plat, plon), row in zip(pts, rows):
+            cur = row.get("current", {}) or {}
+            code = cur.get("weather_code")
+            label, icon = WMO.get(code, ("Inconnu", "❓"))
+            out.append({
+                "dir": name, "lat": plat, "lon": plon,
+                "temp": cur.get("temperature_2m"), "wind": cur.get("wind_speed_10m"),
+                "cloud": cur.get("cloud_cover"), "precip": cur.get("precipitation"),
+                "code": code, "icon": icon, "label": label,
+            })
+        cache = {"fetched_at": time.time(), "points": out, "radius_km": radius, "stale": False}
+        with _lock:
+            write_json(WEATHER_CACHE, cache)
+        log("météo mise à jour (%d points)" % len(out))
+        return cache
+    except Exception as e:
+        log("météo ÉCHEC : %s" % e)
+        if cache.get("points"):
+            cache["stale"] = True
+            cache["error"] = str(e)
+            return cache
+        return {"fetched_at": 0, "points": [], "error": str(e), "stale": True}
 
 
 # ------------------------------------------------------------- statut ISS
@@ -297,6 +390,36 @@ def ensure_satjs():
     return False
 
 
+def _ensure_vendor_file(file_path, urls, marker):
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 800:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                if marker in f.read():
+                    return True
+        except Exception:
+            pass
+    os.makedirs(VENDOR, exist_ok=True)
+    for url in urls:
+        try:
+            txt = http_get(url, timeout=30)
+            if marker in txt:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(txt)
+                log("%s récupéré depuis %s" % (os.path.basename(file_path), url))
+                return True
+        except Exception as e:
+            log("%s échec %s : %s" % (os.path.basename(file_path), url, e))
+    return False
+
+
+def ensure_leaflet_js():
+    return _ensure_vendor_file(LEAFLET_JS_FILE, LEAFLET_JS_URLS, "Leaflet")
+
+
+def ensure_leaflet_css():
+    return _ensure_vendor_file(LEAFLET_CSS_FILE, LEAFLET_CSS_URLS, ".leaflet-")
+
+
 # ------------------------------------------------------------------- journal
 def adif(qsos, station):
     def field(tag, val):
@@ -385,6 +508,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/iss-status/refresh":
             return self.send(200, refresh_iss_status(force=True))
 
+        if path == "/api/weather":
+            return self.send(200, refresh_weather())
+
+        if path == "/api/weather/refresh":
+            return self.send(200, refresh_weather(force=True))
+
         if path == "/api/qso":
             return self.send(200, read_json(QSO_FILE, []))
 
@@ -409,6 +538,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(503, "// satellite.js indisponible : le serveur n'a pas pu le télécharger.\n",
                                  "application/javascript; charset=utf-8")
             return self.serve_file(SATJS_FILE, "application/javascript; charset=utf-8")
+
+        if path == "/vendor/leaflet.js":
+            if not ensure_leaflet_js():
+                return self.send(503, "// leaflet indisponible : le serveur n'a pas pu le télécharger.\n",
+                                 "application/javascript; charset=utf-8")
+            return self.serve_file(LEAFLET_JS_FILE, "application/javascript; charset=utf-8")
+
+        if path == "/vendor/leaflet.css":
+            if not ensure_leaflet_css():
+                return self.send(503, "/* leaflet indisponible */\n", "text/css; charset=utf-8")
+            return self.serve_file(LEAFLET_CSS_FILE, "text/css; charset=utf-8")
 
         # fichiers statiques
         rel = "index.html" if path == "/" else path.lstrip("/")
@@ -470,6 +610,8 @@ def main():
         log("station.json créé (F4MAJ / JN37QS)")
 
     threading.Thread(target=lambda: ensure_satjs(), daemon=True).start()
+    threading.Thread(target=lambda: ensure_leaflet_js(), daemon=True).start()
+    threading.Thread(target=lambda: ensure_leaflet_css(), daemon=True).start()
     threading.Thread(target=tle_worker, daemon=True).start()
 
     log("JB-SATRACK sur http://%s:%d" % (args.host, args.port))

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JB-SATRACK · F4MAJ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/vendor/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -40,9 +41,10 @@
         <span><i style="background:#ffb454"></i>Ma station</span>
         <span><i style="background:rgba(75,227,199,0.25)"></i>Empreinte radio</span>
         <span><i style="background:#1a2438"></i>Zone de nuit</span>
+        <span>🌤 Météo (<span id="wxradius">100</span> km)</span>
       </div>
     </div>
-    <canvas id="worldmap" width="1600" height="800"></canvas>
+    <div id="worldmap"></div>
     <div class="readouts">
       <div class="ro"><div class="k">Distance</div><div class="v live" id="ro-dist">—</div></div>
       <div class="ro"><div class="k">Vitesse</div><div class="v" id="ro-speed">—</div></div>
@@ -158,8 +160,8 @@
   <footer>JB-SATRACK · station F4MAJ · TLE CelesTrak (maj horaire) · statut ISS ARISS · calcul SGP4 satellite.js</footer>
 </div>
 
-<script src="land.js"></script>
 <script src="/vendor/satellite.min.js"></script>
+<script src="/vendor/leaflet.js"></script>
 <script src="app.js"></script>
 <script src="starfield.js"></script>
 </body>
