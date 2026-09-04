@@ -1,0 +1,24 @@
+{
+  "callsign": "F4MAJ",
+  "locator": "JN37QS",
+  "city": "Illzach",
+  "lat": 47.7719,
+  "lon": 7.3444,
+  "alt_m": 240,
+  "antenna": {
+    "type": "omnidirectionnelle fixe",
+    "height_m": 9,
+    "rotor": false,
+    "cone_of_silence_deg": 75
+  },
+  "rig": {
+    "model": "Yaesu FTM-500D",
+    "cat": false,
+    "soundcard": "Digirig",
+    "tuning_step_khz": 5
+  },
+  "min_elevation_deg": 5,
+  "horizon_deg": 0,
+  "timezone": "Europe/Paris",
+  "forecast_hours": 48
+}

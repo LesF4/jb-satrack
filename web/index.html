@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JB-SATRACK · F4MAJ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="field"></canvas>
+<div class="veil"></div>
+
+<div class="wrap">
+
+  <header>
+    <div class="station">
+      <div class="callsign" id="callsign">—</div>
+      <div class="locator">Locator <b id="locatorval">—</b> · <span id="city"></span></div>
+      <div class="badges">
+        <span class="badge" id="antbadge">—</span>
+        <span class="badge" id="rigbadge">—</span>
+        <span class="badge" id="tlestatus">TLE…</span>
+        <button class="badge btn" id="btn-refresh">Rafraîchir TLE</button>
+      </div>
+    </div>
+    <div class="clockbox">
+      <div class="clock" id="utcclock">--:--:--</div>
+      <div class="clocklabel">UTC</div>
+    </div>
+  </header>
+
+  <div class="previewtag" id="banner"><span class="dot"></span> <span id="missing"></span><span id="passcount"></span></div>
+
+  <div class="mappanel">
+    <div class="maphead">
+      <div class="t">Position temps réel · <span id="mapsat">—</span></div>
+      <div class="legend">
+        <span><i style="background:#4be3c7"></i>Satellite</span>
+        <span><i style="background:#ffb454"></i>Ma station</span>
+        <span><i style="background:rgba(75,227,199,0.25)"></i>Empreinte radio</span>
+        <span><i style="background:#1a2438"></i>Zone de nuit</span>
+      </div>
+    </div>
+    <canvas id="worldmap" width="1600" height="800"></canvas>
+    <div class="readouts">
+      <div class="ro"><div class="k">Distance</div><div class="v live" id="ro-dist">—</div></div>
+      <div class="ro"><div class="k">Vitesse</div><div class="v" id="ro-speed">—</div></div>
+      <div class="ro"><div class="k">Altitude</div><div class="v" id="ro-alt">—</div></div>
+      <div class="ro"><div class="k">Position sat</div><div class="v" id="ro-pos">—</div></div>
+      <div class="ro"><div class="k">Azimut / Élév.</div><div class="v" id="ro-azel">—</div></div>
+      <div class="ro"><div class="k">Visibilité</div><div class="v" id="ro-vis">—</div></div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="panel">
+      <h2>Passage sélectionné <span class="tag">COMPTE À REBOURS</span></h2>
+      <div class="nextsat">
+        <span class="name" id="nextname">—</span>
+        <span class="modepill" id="nextmode">—</span>
+      </div>
+      <div class="countdown" id="countdown">--:--:--</div>
+      <div class="countdown-label" id="cdlabel">—</div>
+
+      <div class="passfacts">
+        <div class="fact"><div class="k">Élév. max</div><div class="v" id="f-maxel">—</div></div>
+        <div class="fact"><div class="k">Durée</div><div class="v" id="f-dur">—</div></div>
+        <div class="fact"><div class="k">Az AOS → LOS</div><div class="v" id="f-az">—</div></div>
+        <div class="fact"><div class="k">Qualité omni</div><div class="v" id="f-qual">—</div></div>
+      </div>
+
+      <div class="freqrow">
+        <div class="freqbox">
+          <div class="k">Uplink (toi → sat)</div>
+          <div class="v" id="txfreq">—</div>
+          <div class="doppler up" id="txdop">—</div>
+          <div class="pl" id="ctcssval">—</div>
+        </div>
+        <div class="freqbox">
+          <div class="k">Downlink (sat → toi)</div>
+          <div class="v" id="rxfreq">—</div>
+          <div class="doppler down" id="rxdop">—</div>
+          <div class="pl" id="modval">—</div>
+        </div>
+      </div>
+      <div class="passnote" id="passnote"></div>
+    </div>
+
+    <div class="panel polarwrap">
+      <h2 style="align-self:flex-start;">Trajectoire Az/El</h2>
+      <canvas id="polar" width="600" height="600"></canvas>
+      <div class="cone-note"><span class="dot"></span> Zone pointillée = cône de silence de l'antenne omni verticale. Au-delà de ~75° d'élévation, creux de signal possible au passage au zénith.</div>
+    </div>
+  </div>
+
+  <div class="panel isspanel">
+    <h2>État radio de l'ISS <span class="tag" id="isscheck">—</span></h2>
+    <div class="issgrid" id="issgrid"><div class="issmode">Chargement…</div></div>
+    <div class="isssrc">Source : <a href="https://www.ariss.org/current-status-of-iss-stations.html" target="_blank" rel="noopener">ARISS — Current status of ISS stations</a> · relevé automatiquement toutes les heures</div>
+  </div>
+
+  <div class="panel planpanel">
+    <h2>Plan de tuning Doppler · FTM-500D
+      <span class="tag" id="planhead">—</span>
+    </h2>
+    <div class="plangrid" id="plangrid"></div>
+    <div class="planfoot">
+      <button class="btn" id="btn-mem">Exporter les mémoires (CSV)</button>
+      <span class="hint">Le FTM-500D n'a pas de commande CAT : ces 5 mémoires se sélectionnent à la molette aux horaires indiqués.</span>
+    </div>
+  </div>
+
+  <div class="panel listpanel">
+    <h2>Passages à venir <span class="tag">HEURE UTC · CLIQUE UNE LIGNE POUR LA SUIVRE</span></h2>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Satellite</th><th>Mode</th><th>AOS</th>
+            <th class="num">Élév. max</th><th class="num">Durée</th><th>Downlink</th><th>Qualité</th>
+          </tr>
+        </thead>
+        <tbody id="passtable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel qsopanel">
+    <h2>Journal de trafic <span class="tag">EXPORT ADIF</span></h2>
+    <div class="qsoform">
+      <input id="q-call" placeholder="Indicatif" autocomplete="off">
+      <input id="q-grid" placeholder="Locator" autocomplete="off">
+      <input id="q-rsts" placeholder="RST envoyé" value="59">
+      <input id="q-rstr" placeholder="RST reçu" value="59">
+      <input id="q-note" placeholder="Note" autocomplete="off">
+      <button class="btn" id="btn-qso">Enregistrer le QSO</button>
+      <a class="btn ghost" href="/api/qso.adi">Télécharger l'ADIF</a>
+      <span class="hint" id="qsomsg"></span>
+    </div>
+  </div>
+
+  <div class="gear">
+    <div class="gearcard">
+      <div class="gearicon">📡</div>
+      <div><div class="t">Antenne</div><div class="s">Omnidirectionnelle fixe · 9 m sol<br>Pas de rotor — aucune orientation à faire</div></div>
+    </div>
+    <div class="gearcard">
+      <div class="gearicon">📻</div>
+      <div><div class="t">Transceiver</div><div class="s">Yaesu FTM-500D<br>Doppler à la molette (pas de CAT)</div></div>
+    </div>
+    <div class="gearcard">
+      <div class="gearicon">🎚️</div>
+      <div><div class="t">Interface</div><div class="s">Digirig Mobile<br>Audio + PTT — APRS, SSTV, télémétrie</div></div>
+    </div>
+  </div>
+
+  <footer>JB-SATRACK · station F4MAJ · TLE CelesTrak (maj horaire) · statut ISS ARISS · calcul SGP4 satellite.js</footer>
+</div>
+
+<script src="land.js"></script>
+<script src="/vendor/satellite.min.js"></script>
+<script src="app.js"></script>
+<script src="starfield.js"></script>
+</body>
+</html>

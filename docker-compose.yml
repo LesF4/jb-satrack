@@ -1,0 +1,11 @@
+services:
+  jb-satrack:
+    build: .
+    container_name: jb-satrack
+    restart: unless-stopped
+    ports:
+      - "8073:8073"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - TZ=Europe/Paris

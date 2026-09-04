@@ -1,0 +1,7 @@
+data/tle_cache.json
+data/iss_status.json
+data/vendor/
+data/qso.json
+__pycache__/
+*.pyc
+.DS_Store
