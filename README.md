@@ -10,7 +10,7 @@ Pensé pour une **antenne omnidirectionnelle fixe à 9 m** (pas de rotor) et un 
 ## Ce que ça fait
 
 - **Carte du monde temps réel** sur un vrai fond de carte (tuiles OpenStreetMap/Esri, panoramique et zoom à la souris) : position du satellite, trace au sol (une orbite avant / après), empreinte radio, zone de nuit, ligne station↔satellite quand il est en vue.
-- **Météo autour de la station** : icônes à la station et sur 8 points cardinaux à 100 km (rayon réglable), température, vent, nébulosité — utile pour savoir si un passage bas sera dégagé.
+- **Aperçu météo à la station** : 1 pictogramme (conditions actuelles), 2 si un changement est prévu dans les prochaines heures — semi-transparent, à côté de la maison qui repère la station, sans surcharger la carte.
 - **Lectures live** : distance, vitesse, altitude, latitude/longitude, azimut/élévation, visibilité.
 - **Prédiction des passages sur 48 h** pour tous les satellites du catalogue, triés par heure, avec AOS/LOS, élévation maximale, durée et azimuts d'entrée/sortie.
 - **Note de qualité adaptée à une omni verticale** : un passage rasant est marqué comme tel, et un passage qui culmine au-delà de 75° est signalé « Zénith » car une verticale a un **cône de silence** au-dessus de la tête — c'est le seul tracker qui te dira que le passage « parfait » à 88° est en fait moins bon que celui à 45°.
@@ -56,15 +56,13 @@ Tout est dans `data/station.json`, créé au premier démarrage :
   "antenna": {"type": "omnidirectionnelle fixe", "height_m": 9, "rotor": false, "cone_of_silence_deg": 75},
   "rig": {"model": "Yaesu FTM-500D", "cat": false, "soundcard": "Digirig", "tuning_step_khz": 5},
   "min_elevation_deg": 5,
-  "forecast_hours": 48,
-  "weather_radius_km": 100
+  "forecast_hours": 48
 }
 ```
 
 - `min_elevation_deg` : passages ignorés en dessous (5° par défaut ; monte à 10° si l'horizon est bouché).
 - `cone_of_silence_deg` : seuil au-delà duquel un passage est signalé « Zénith ».
 - `forecast_hours` : horizon de prédiction.
-- `weather_radius_km` : distance des 8 points météo autour de la station (100 km par défaut).
 
 Le catalogue des satellites et leurs fréquences est dans `data/satellites.json` — facile à éditer pour ajouter un satellite ou corriger une fréquence.
 
@@ -85,8 +83,8 @@ En bande basse (145 MHz) le Doppler est d'environ ±3 kHz, en 435 MHz d'environ 
 - Propagation **SGP4** via [satellite.js](https://github.com/shashwatak/satellite-js), la même famille d'algorithmes que Gpredict ou SatPC32. Le serveur télécharge la bibliothèque au premier lancement et la met en cache dans `data/vendor/`.
 - Éléments orbitaux **CelesTrak** (groupes `amateur` et `stations`), rafraîchis toutes les heures. Un TLE de moins de 24 h donne une précision de l'ordre de la seconde sur les heures de passage.
 - Les fréquences du catalogue sont vérifiées manuellement (sources AMSAT, F5SVP). Un satellite peut tomber en panne ou changer de mode : **vérifie [amsat.org/status](https://www.amsat.org/status/) avant un QSO important**. Le statut ISS, lui, est relevé automatiquement.
-- Carte : tuiles **Esri World Dark Gray** (fond + libellés) via [Leaflet](https://leafletjs.com/), mises en cache localement comme satellite.js. Aucune clé requise, mais nécessite Internet pour charger les tuiles (le reste de l'appli continue de fonctionner hors-ligne une fois la page chargée).
-- Météo : [Open-Meteo](https://open-meteo.com/) (gratuit, sans clé), rafraîchie toutes les 30 min.
+- Carte : imagerie satellite **Esri World Imagery** (fond + libellés/frontières) via [Leaflet](https://leafletjs.com/), mise en cache localement comme satellite.js. Aucune clé requise, mais nécessite Internet pour charger les tuiles (le reste de l'appli continue de fonctionner hors-ligne une fois la page chargée).
+- Météo : [Open-Meteo](https://open-meteo.com/) (gratuit, sans clé), à la station uniquement, rafraîchie toutes les 30 min.
 - Le calcul satellite se fait dans le navigateur : le serveur ne fait que servir les données.
 
 ## API
@@ -97,7 +95,7 @@ En bande basse (145 MHz) le Doppler est d'environ ±3 kHz, en 435 MHz d'environ 
 | `GET /api/satellites` | catalogue fréquences/modes |
 | `GET /api/tle` · `GET /api/tle/refresh` | éléments orbitaux (cache 1 h) |
 | `GET /api/iss-status` · `/refresh` | état radio ISS (ARISS, cache 1 h) |
-| `GET /api/weather` · `/refresh` | météo station + 8 points à 100 km (cache 30 min) |
+| `GET /api/weather` · `/refresh` | météo à la station, maintenant + prévision courte (cache 30 min) |
 | `GET /api/qso` · `POST /api/qso` | journal de trafic |
 | `GET /api/qso.adi` | export ADIF |
 | `GET /api/health` | état du serveur |

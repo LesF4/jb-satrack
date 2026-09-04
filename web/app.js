@@ -241,12 +241,12 @@ const MAP = (function () {
     const el = $('worldmap'); if (!el || typeof L === 'undefined') return false;
     map = L.map(el, { worldCopyJump: true }).setView([S.station.lat, S.station.lon], 4);
 
-    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16,
-      attribution: 'Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 17,
+      attribution: 'Esri, Maxar, Earthstar Geographics &amp; contributors'
     }).addTo(map);
-    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16
+    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 17
     }).addTo(map);
 
     nightLayer = L.polygon([], { stroke: false, fillColor: '#04080f', fillOpacity: 0.55, interactive: false }).addTo(map);
@@ -256,8 +256,8 @@ const MAP = (function () {
     linkLine = L.polyline([], { color: '#ffb454', weight: 1.5, opacity: 0.65, dashArray: '6,6', interactive: false }).addTo(map);
 
     staMarker = L.marker([S.station.lat, S.station.lon], {
-      icon: L.divIcon({ className: '', iconAnchor: [5, 10],
-        html: '<div class="sat-icon station"><span class="dot"></span>' + S.station.callsign + '</div>' })
+      icon: L.divIcon({ className: '', iconAnchor: [11, 14],
+        html: '<div class="sat-icon station"><span class="house">🏠</span>' + S.station.callsign + '</div>' })
     }).addTo(map);
 
     satMarker = L.marker([0, 0], {
@@ -362,23 +362,28 @@ const MAP = (function () {
     });
   }
 
-  function setWeather(points) {
+  /* au plus 2 pictogrammes (maintenant / bientôt si ça change), semi-transparents,
+     décalés au-dessus de la maison pour ne pas la cacher */
+  function setWeather(data) {
     if (!map) return;
     if (wxLayer) wxLayer.clearLayers(); else wxLayer = L.layerGroup().addTo(map);
-    (points || []).forEach(p => {
-      if (p.lat == null || p.lon == null) return;
-      const marker = L.marker([p.lat, p.lon], {
-        icon: L.divIcon({ className: '', iconAnchor: [14, 14],
+    if (!data || !data.now) return;
+    const at = [S.station.lat, S.station.lon];
+
+    const pin = (p, label, anchor) => {
+      const marker = L.marker(at, {
+        icon: L.divIcon({ className: '', iconAnchor: anchor,
           html: '<div class="wx-icon">' + p.icon + '<div class="t">' + (p.temp != null ? Math.round(p.temp) + '°' : '—') + '</div></div>' })
       });
-      marker.bindPopup(
-        '<b>' + p.dir + '</b><br>' + p.label +
-        '<br>' + (p.temp != null ? p.temp.toFixed(1) + ' °C' : '—') +
-        ' · vent ' + (p.wind != null ? Math.round(p.wind) + ' km/h' : '—') +
-        '<br>nébulosité ' + (p.cloud != null ? p.cloud + ' %' : '—')
-      );
+      marker.bindPopup('<b>' + label + '</b><br>' + p.label +
+        (p.temp != null ? '<br>' + p.temp.toFixed(1) + ' °C' : '') +
+        (p.wind != null ? ' · vent ' + Math.round(p.wind) + ' km/h' : '') +
+        (p.cloud != null ? '<br>nébulosité ' + p.cloud + ' %' : ''));
       wxLayer.addLayer(marker);
-    });
+    };
+
+    pin(data.now, 'Maintenant', [18, 44]);
+    if (data.later) pin(data.later, 'Dans ' + data.later.hours + ' h', [-2, 44]);
   }
 
   return { build, draw, setWeather };
@@ -506,10 +511,9 @@ function shortMode(m) {
 async function loadWeather() {
   let data;
   try { data = await fetch('/api/weather').then(r => r.json()); }
-  catch (e) { data = { points: [], error: e.message }; }
+  catch (e) { data = { now: null, later: null, error: e.message }; }
   S.weather = data;
-  $('wxradius').textContent = data.radius_km || S.station.weather_radius_km || 100;
-  MAP.setWeather(data.points || []);
+  MAP.setWeather(data);
 }
 
 /* ------------------------------------------------------------- statut ISS */

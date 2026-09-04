@@ -114,12 +114,13 @@
   .leaflet-popup-tip{background:var(--panel) !important;}
   .leaflet-popup-close-button{color:var(--ink-2) !important;}
   .leaflet-div-icon{background:transparent !important; border:none !important;}
-  .wx-icon{font-size:20px; line-height:1; text-align:center; filter:drop-shadow(0 0 4px rgba(0,0,0,0.8));}
+  .wx-icon{font-size:20px; line-height:1; text-align:center; opacity:0.68;
+    filter:drop-shadow(0 0 4px rgba(0,0,0,0.9)); pointer-events:auto;}
   .wx-icon .t{font-family:var(--mono); font-size:10px; color:var(--ink-0); text-shadow:0 0 4px #000, 0 0 4px #000;}
   .sat-icon{display:flex; align-items:center; gap:6px; white-space:nowrap;
     font-family:var(--mono); font-weight:600; font-size:13px; text-shadow:0 0 6px rgba(0,0,0,0.9);}
   .sat-icon .dot{width:10px; height:10px; border-radius:50%; flex:none;}
-  .sat-icon.station .dot{background:#ffb454; box-shadow:0 0 10px #ffb454;}
+  .sat-icon .house{font-size:20px; line-height:1; filter:drop-shadow(0 0 5px rgba(255,180,84,0.9));}
   .sat-icon.sat .dot{background:#4be3c7; box-shadow:0 0 12px #4be3c7;}
   .sat-icon.station{color:rgba(255,180,84,0.9);}
   .sat-icon.sat{color:rgba(232,240,245,0.95);}

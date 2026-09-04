@@ -17,7 +17,6 @@ Le serveur :
 
 import argparse
 import json
-import math
 import os
 import re
 import ssl
@@ -102,8 +101,7 @@ DEFAULT_STATION = {
     "min_elevation_deg": 5,
     "horizon_deg": 0,
     "timezone": "Europe/Paris",
-    "forecast_hours": 48,
-    "weather_radius_km": 100
+    "forecast_hours": 48
 }
 
 _lock = threading.Lock()
@@ -213,59 +211,51 @@ def tle_worker():
 
 
 # --------------------------------------------------------------- météo locale
-def dest_point(lat, lon, bearing_deg, dist_km):
-    """Point à `dist_km` de (lat, lon) sur le cap `bearing_deg` (grand cercle)."""
-    R = 6371.0
-    lat1, lon1, brng = math.radians(lat), math.radians(lon), math.radians(bearing_deg)
-    d_r = dist_km / R
-    lat2 = math.asin(math.sin(lat1) * math.cos(d_r) + math.cos(lat1) * math.sin(d_r) * math.cos(brng))
-    lon2 = lon1 + math.atan2(math.sin(brng) * math.sin(d_r) * math.cos(lat1),
-                              math.cos(d_r) - math.sin(lat1) * math.sin(lat2))
-    return math.degrees(lat2), (math.degrees(lon2) + 540) % 360 - 180
+WEATHER_SOON_HOURS = 3     # échéance du 2e pictogramme, affiché seulement si ça change
+
+def _wx_point(code, temp):
+    label, icon = WMO.get(code, ("Inconnu", "❓"))
+    return {"code": code, "icon": icon, "label": label, "temp": temp}
 
 
 def refresh_weather(force=False):
     cache = read_json(WEATHER_CACHE, {})
-    if cache.get("points") and time.time() - cache.get("fetched_at", 0) < WEATHER_MAX_AGE and not force:
+    if cache.get("now") and time.time() - cache.get("fetched_at", 0) < WEATHER_MAX_AGE and not force:
         return cache
 
     station = read_json(STATION_FILE, DEFAULT_STATION)
     lat, lon = station.get("lat", 0), station.get("lon", 0)
-    radius = station.get("weather_radius_km", 100)
-    dirs = [("N", 0), ("NE", 45), ("E", 90), ("SE", 135), ("S", 180), ("SW", 225), ("W", 270), ("NW", 315)]
-    pts = [("Station", lat, lon)] + [(name,) + dest_point(lat, lon, b, radius) for name, b in dirs]
 
     try:
-        lats = ",".join("%.4f" % p[1] for p in pts)
-        lons = ",".join("%.4f" % p[2] for p in pts)
-        url = (WEATHER_URL + "?latitude=%s&longitude=%s"
+        url = (WEATHER_URL + "?latitude=%.4f&longitude=%.4f" % (lat, lon) +
                "&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,precipitation"
-               "&timezone=auto" % (lats, lons))
+               "&hourly=temperature_2m,weather_code&forecast_hours=%d&timezone=auto" % (WEATHER_SOON_HOURS + 1))
         data = json.loads(http_get(url, timeout=20))
-        rows = data if isinstance(data, list) else [data]
-        out = []
-        for (name, plat, plon), row in zip(pts, rows):
-            cur = row.get("current", {}) or {}
-            code = cur.get("weather_code")
-            label, icon = WMO.get(code, ("Inconnu", "❓"))
-            out.append({
-                "dir": name, "lat": plat, "lon": plon,
-                "temp": cur.get("temperature_2m"), "wind": cur.get("wind_speed_10m"),
-                "cloud": cur.get("cloud_cover"), "precip": cur.get("precipitation"),
-                "code": code, "icon": icon, "label": label,
-            })
-        cache = {"fetched_at": time.time(), "points": out, "radius_km": radius, "stale": False}
+        cur = data.get("current", {}) or {}
+        now = _wx_point(cur.get("weather_code"), cur.get("temperature_2m"))
+        now["wind"] = cur.get("wind_speed_10m")
+        now["cloud"] = cur.get("cloud_cover")
+
+        later = None
+        hourly = data.get("hourly", {}) or {}
+        codes, temps = hourly.get("weather_code") or [], hourly.get("temperature_2m") or []
+        if len(codes) > WEATHER_SOON_HOURS and codes[WEATHER_SOON_HOURS] != now["code"]:
+            later = _wx_point(codes[WEATHER_SOON_HOURS],
+                               temps[WEATHER_SOON_HOURS] if len(temps) > WEATHER_SOON_HOURS else None)
+            later["hours"] = WEATHER_SOON_HOURS
+
+        cache = {"fetched_at": time.time(), "lat": lat, "lon": lon, "now": now, "later": later, "stale": False}
         with _lock:
             write_json(WEATHER_CACHE, cache)
-        log("météo mise à jour (%d points)" % len(out))
+        log("météo mise à jour (%s%s)" % (now["label"], " -> " + later["label"] if later else ""))
         return cache
     except Exception as e:
         log("météo ÉCHEC : %s" % e)
-        if cache.get("points"):
+        if cache.get("now"):
             cache["stale"] = True
             cache["error"] = str(e)
             return cache
-        return {"fetched_at": 0, "points": [], "error": str(e), "stale": True}
+        return {"fetched_at": 0, "now": None, "later": None, "error": str(e), "stale": True}
 
 
 # ------------------------------------------------------------- statut ISS
