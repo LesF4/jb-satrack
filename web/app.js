@@ -11,8 +11,10 @@ const S = {
 
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2, '0');
-const hhmmss = d => pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
 const hhmm = d => pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+const tzOf = () => (S.station && S.station.timezone) || 'Europe/Paris';
+const hhmmssLoc = d => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: tzOf() });
+const hhmmLoc = d => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tzOf() });
 const fmt = (n, d = 0) => Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
 const mhz = f => Number(f).toFixed(4);
 const dur = s => s >= 3600 ? (Math.floor(s / 3600) + ' h ' + pad(Math.round(s % 3600 / 60)))
@@ -157,7 +159,7 @@ function renderPassTable() {
     tr.innerHTML =
       '<td class="satcell"><span class="satdot" style="background:' + p.color + '"></span>' + p.satName + '</td>' +
       '<td>' + p.modeLabel + '</td>' +
-      '<td>' + hhmm(new Date(p.aos)) + '<span class="loc"> ' + localHM(p.aos) + '</span></td>' +
+      '<td>' + hhmmLoc(new Date(p.aos)) + '<span class="loc"> ' + hhmm(new Date(p.aos)) + ' UTC</span></td>' +
       '<td class="num">' + p.maxEl.toFixed(0) + '°</td>' +
       '<td class="num">' + dur(p.duration) + '</td>' +
       '<td>' + (p.mode.down ? mhz(p.mode.down) : '—') + '</td>' +
@@ -165,10 +167,6 @@ function renderPassTable() {
     tr.onclick = () => selectPass(p);
     tb.appendChild(tr);
   });
-}
-
-function localHM(ms) {
-  return new Date(ms).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: S.station.timezone || 'Europe/Paris' }) + ' loc';
 }
 
 function selectPass(p) {
@@ -208,7 +206,7 @@ function renderPlan() {
   S.plan = plan;
   box.innerHTML = plan.map((s, i) =>
     '<div class="step" data-i="' + i + '">' +
-    '<div class="when">M-' + pad(i + 1) + ' · ' + hhmm(new Date(s.start)) + ' → ' + hhmm(new Date(s.end)) + '</div>' +
+    '<div class="when">M-' + pad(i + 1) + ' · ' + hhmmLoc(new Date(s.start)) + ' → ' + hhmmLoc(new Date(s.end)) + '</div>' +
     '<div class="rx">RX ' + mhz(s.rx) + '</div>' +
     '<div class="tx">' + (s.tx ? 'TX ' + mhz(s.tx) : 'écoute seule') + '</div></div>').join('');
   $('planhead').textContent = 'PAS DE ' + ((S.station.rig.tuning_step_khz) || 5) + ' kHz · ' + plan.length + ' MÉMOIRES';
@@ -384,7 +382,7 @@ const MAP = (function () {
 /* ------------------------------------------------------------------ boucle */
 function tickClock() {
   const d = new Date();
-  $('utcclock').textContent = hhmmss(d);
+  $('localclock').textContent = hhmmssLoc(d);
   const p = S.selectedPass;
   if (p) {
     const now = Date.now();
@@ -394,7 +392,7 @@ function tickClock() {
     const h = Math.floor(s / 3600); s -= h * 3600;
     const m = Math.floor(s / 60); s -= m * 60;
     $('countdown').textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
-    $('cdlabel').textContent = label + ' — AOS ' + hhmmss(new Date(p.aos)) + ' UTC';
+    $('cdlabel').textContent = label + ' — AOS ' + hhmmssLoc(new Date(p.aos)) + ' loc.';
     $('countdown').classList.toggle('live', now >= p.aos && now <= p.los);
     if (now > p.los + 5000) computeAll();       // passage terminé : on recalcule
   }
