@@ -320,8 +320,13 @@ const MAP = (function () {
     trackPast.setLatLngs(splitAtDateline(past));
     trackFuture.setLatLngs(splitAtDateline(future));
 
-    // empreinte radio
-    const RE = 6371, r = RE + st.alt, foot = Math.acos(RE / r), ring = [];
+    // empreinte radio : rayon utile à ton élévation mini configurée (pas l'horizon géométrique à 0°,
+    // bien plus large et donc trompeur — on montre où le signal est réellement exploitable)
+    const RE = 6371, r = RE + st.alt;
+    const minEl = S.station.min_elevation_deg || 5, audible = st.el > minEl;
+    const minElR = minEl * D;
+    const foot = Math.PI / 2 - minElR - Math.asin((RE / r) * Math.cos(minElR));
+    const ring = [];
     for (let a = 0; a <= 360; a += 3) {
       const br = a * D;
       const la = Math.asin(Math.sin(st.lat * D) * Math.cos(foot) + Math.cos(st.lat * D) * Math.sin(foot) * Math.cos(br));
@@ -329,12 +334,15 @@ const MAP = (function () {
       ring.push([la / D, ((lo / D + 180) % 360 + 360) % 360 - 180]);
     }
     footprint.setLatLngs(splitAtDateline(ring));
+    footprint.setStyle(audible
+      ? { color: 'rgba(255,180,84,0.6)', fillColor: '#ffb454', fillOpacity: 0.13 }
+      : { color: 'rgba(75,227,199,0.4)', fillColor: '#4be3c7', fillOpacity: 0.08 });
 
-    // station, satellite, liaison
+    // station, satellite, liaison — la liaison ne s'affiche que si le signal est exploitable
     satMarker.setLatLng([st.lat, st.lon]);
     satMarker.setIcon(L.divIcon({ className: '', iconAnchor: [5, 10],
       html: '<div class="sat-icon sat"><span class="dot"></span>' + S.tracked.name.split(' ')[0] + '</div>' }));
-    linkLine.setLatLngs(st.el > 0 ? [[S.station.lat, S.station.lon], [st.lat, st.lon]] : []);
+    linkLine.setLatLngs(audible ? [[S.station.lat, S.station.lon], [st.lat, st.lon]] : []);
 
     // lectures + Doppler live
     const rr = rangeRate(rec, new Date(now));
@@ -345,8 +353,8 @@ const MAP = (function () {
       Math.abs(st.lon).toFixed(1) + '°' + (st.lon >= 0 ? 'E' : 'O');
     $('ro-azel').textContent = st.az.toFixed(0) + '° / ' + st.el.toFixed(1) + '°';
     const vis = $('ro-vis');
-    vis.textContent = st.el > 0 ? 'EN VUE' : 'sous horizon';
-    vis.className = st.el > 0 ? 'v live' : 'v';
+    vis.textContent = audible ? 'AUDIBLE' : (st.el > 0 ? 'trop bas' : 'sous horizon');
+    vis.className = audible ? 'v live' : 'v';
 
     const m = S.tracked.mode;
     if (m && m.down) {
