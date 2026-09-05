@@ -430,6 +430,7 @@ async function boot() {
       height: (station.alt_m + (station.antenna.height_m || 0)) / 1000
     };
     renderHeader();
+    if (station.configured === false) openSetup(true);
     if (typeof satellite === 'undefined') {
       $('banner').textContent = 'satellite.js non chargé : le serveur n\'a pas pu le télécharger. Vérifie la connexion internet de JB-SERVER puis recharge.';
       $('banner').className = 'previewtag bad';
@@ -676,6 +677,73 @@ async function saveQso() {
   setTimeout(() => $('qsomsg').textContent = '', 4000);
 }
 
+/* ------------------------------------------------------------- config station */
+/* locator Maidenhead (4 ou 6 caractères) -> centre de la case en lat/lon */
+function locatorToLatLon(loc) {
+  loc = (loc || '').trim().toUpperCase();
+  if (!/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(loc)) return null;
+  const A = 'A'.charCodeAt(0), Z = '0'.charCodeAt(0);
+  let lon = (loc.charCodeAt(0) - A) * 20 - 180;
+  let lat = (loc.charCodeAt(1) - A) * 10 - 90;
+  lon += (loc.charCodeAt(2) - Z) * 2;
+  lat += (loc.charCodeAt(3) - Z) * 1;
+  if (loc.length >= 6) {
+    lon += (loc.charCodeAt(4) - A) * (2 / 24) + (2 / 24) / 2;
+    lat += (loc.charCodeAt(5) - A) * (1 / 24) + (1 / 24) / 2;
+  } else {
+    lon += 1; lat += 0.5;
+  }
+  return { lat: Math.round(lat * 10000) / 10000, lon: Math.round(lon * 10000) / 10000 };
+}
+
+function openSetup(firstRun) {
+  const st = S.station || {};
+  $('s-call').value = firstRun ? '' : (st.callsign || '');
+  $('s-loc').value = firstRun ? '' : (st.locator || '');
+  $('s-city').value = st.city || '';
+  $('s-tz').value = st.timezone || 'Europe/Paris';
+  $('s-error').textContent = '';
+  updateSetupPreview();
+  $('s-cancel').style.display = firstRun ? 'none' : '';
+  $('setup-veil').hidden = false;
+}
+
+function closeSetup() { $('setup-veil').hidden = true; }
+
+function updateSetupPreview() {
+  const p = locatorToLatLon($('s-loc').value);
+  $('s-preview').textContent = p ? ('Position calculée : ' + p.lat.toFixed(4) + '°, ' + p.lon.toFixed(4) + '°') : '';
+}
+
+async function saveSetup() {
+  const call = $('s-call').value.trim().toUpperCase();
+  const loc = $('s-loc').value.trim().toUpperCase();
+  const city = $('s-city').value.trim();
+  const tz = $('s-tz').value.trim() || 'Europe/Paris';
+  const pos = locatorToLatLon(loc);
+  if (!call) { $('s-error').textContent = 'Indicatif requis.'; return; }
+  if (!pos) { $('s-error').textContent = 'Locator invalide (ex. JN37QS).'; return; }
+  const payload = { callsign: call, locator: loc, city, timezone: tz, lat: pos.lat, lon: pos.lon, configured: true };
+  $('s-save').textContent = '...';
+  try {
+    const station = await fetch('/api/station', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    }).then(r => r.json());
+    S.station = station;
+    S.observer = {
+      longitude: station.lon * D, latitude: station.lat * D,
+      height: (station.alt_m + (station.antenna.height_m || 0)) / 1000
+    };
+    renderHeader();
+    computeAll();
+    closeSetup();
+  } catch (e) {
+    $('s-error').textContent = 'Échec de l\'enregistrement : ' + e.message;
+  } finally {
+    $('s-save').textContent = 'Enregistrer';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   $('btn-mem').onclick = exportMemories;
   $('btn-qso').onclick = saveQso;
@@ -686,5 +754,9 @@ window.addEventListener('DOMContentLoaded', () => {
     S.tle = t.sats; S.tleInfo = t; renderHeader(); computeAll();
     $('btn-refresh').textContent = 'Rafraîchir TLE';
   };
+  $('btn-settings').onclick = () => openSetup(false);
+  $('s-cancel').onclick = closeSetup;
+  $('s-save').onclick = saveSetup;
+  $('s-loc').oninput = updateSetupPreview;
   boot();
 });

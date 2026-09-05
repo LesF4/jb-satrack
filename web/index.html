@@ -23,6 +23,7 @@
         <span class="badge" id="rigbadge">—</span>
         <span class="badge" id="tlestatus">TLE…</span>
         <button class="badge btn" id="btn-refresh">Rafraîchir TLE</button>
+        <button class="badge btn ghost" id="btn-settings" title="Réglages de la station">⚙ Réglages</button>
       </div>
     </div>
     <div class="clockbox">
@@ -30,6 +31,36 @@
       <div class="clocklabel">Heure locale</div>
     </div>
   </header>
+
+  <div class="modal-veil" id="setup-veil" hidden>
+    <div class="modal">
+      <h2>Configurer ta station</h2>
+      <p class="modal-intro">Ton indicatif et ton locator suffisent — la position se calcule toute seule.</p>
+      <label class="field">
+        <span>Indicatif</span>
+        <input id="s-call" placeholder="ex. F4MAJ" autocomplete="off" autocapitalize="characters">
+      </label>
+      <label class="field">
+        <span>Locator (grid square)</span>
+        <input id="s-loc" placeholder="ex. JN37QS" autocomplete="off" autocapitalize="characters" maxlength="8">
+      </label>
+      <label class="field">
+        <span>Ville (optionnel)</span>
+        <input id="s-city" placeholder="ex. Illzach" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Fuseau horaire</span>
+        <input id="s-tz" placeholder="ex. Europe/Paris" autocomplete="off" value="Europe/Paris">
+      </label>
+      <div class="modal-preview" id="s-preview"></div>
+      <div class="modal-error" id="s-error"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="s-cancel">Annuler</button>
+        <button class="btn" id="s-save">Enregistrer</button>
+      </div>
+      <p class="modal-hint">Antenne, radio et autres réglages avancés : modifiables dans <code>data/station.json</code>.</p>
+    </div>
+  </div>
 
   <div class="previewtag" id="banner"><span class="dot"></span> <span id="missing"></span><span id="passcount"></span></div>
 

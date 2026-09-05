@@ -20,5 +20,6 @@
   "min_elevation_deg": 5,
   "horizon_deg": 0,
   "timezone": "Europe/Paris",
-  "forecast_hours": 48
+  "forecast_hours": 48,
+  "configured": true
 }

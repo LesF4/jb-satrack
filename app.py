@@ -24,12 +24,21 @@ import sys
 import threading
 import time
 import urllib.request
+import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-WEB = os.path.join(ROOT, "web")
-DATA = os.path.join(ROOT, "data")
+if getattr(sys, "frozen", False):
+    # exécutable PyInstaller : ressources embarquées (lecture seule) dans le
+    # dossier temporaire d'extraction, données persistantes à côté du .exe
+    BUNDLE = sys._MEIPASS
+    ROOT = os.path.dirname(sys.executable)
+else:
+    BUNDLE = ROOT = os.path.dirname(os.path.abspath(__file__))
+
+WEB = os.path.join(BUNDLE, "web")
+SEED = os.path.join(BUNDLE, "data")      # catalogue satellites + TLE de secours : embarqués, lecture seule
+DATA = os.path.join(ROOT, "data")        # station.json, qso.json, caches, vendor/ : persistants
 VENDOR = os.path.join(DATA, "vendor")
 
 TLE_SOURCES = [
@@ -38,7 +47,7 @@ TLE_SOURCES = [
 ]
 TLE_MAX_AGE = 3600              # 1 h — rafraîchissement automatique
 TLE_CACHE = os.path.join(DATA, "tle_cache.json")
-TLE_FALLBACK = os.path.join(DATA, "tle_fallback.txt")
+TLE_FALLBACK = os.path.join(SEED, "tle_fallback.txt")
 
 # statut radio de l'ISS (page officielle ARISS)
 ISS_STATUS_URL = "https://www.ariss.org/current-status-of-iss-stations.html"
@@ -85,7 +94,7 @@ WMO = {
 
 STATION_FILE = os.path.join(DATA, "station.json")
 QSO_FILE = os.path.join(DATA, "qso.json")
-SATS_FILE = os.path.join(DATA, "satellites.json")
+SATS_FILE = os.path.join(SEED, "satellites.json")
 
 DEFAULT_STATION = {
     "callsign": "F4MAJ",
@@ -101,7 +110,8 @@ DEFAULT_STATION = {
     "min_elevation_deg": 5,
     "horizon_deg": 0,
     "timezone": "Europe/Paris",
-    "forecast_hours": 48
+    "forecast_hours": 48,
+    "configured": False    # bascule à True une fois l'assistant de configuration passé
 }
 
 _lock = threading.Lock()
@@ -605,6 +615,10 @@ def main():
     threading.Thread(target=tle_worker, daemon=True).start()
 
     log("JB-SATRACK sur http://%s:%d" % (args.host, args.port))
+    if getattr(sys, "frozen", False):
+        # exécutable autonome : pas de .bat pour ouvrir le navigateur, on le fait nous-mêmes
+        url = "http://127.0.0.1:%d" % args.port
+        threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
 
 
