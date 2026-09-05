@@ -124,3 +124,5 @@ tests/                 stub hors ligne pour tests d'interface
 ---
 
 Station F4MAJ · JN37QS · Illzach
+
+© 2026 F4MAJ & Claude IA (Anthropic) — création conjointe, tous droits réservés.
