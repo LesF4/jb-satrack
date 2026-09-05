@@ -44,6 +44,19 @@ python3 app.py --port 9000
 
 Sous Windows, place le dossier sur **D:** (par exemple `D:\jb-satrack`) et lance `python app.py`.
 
+### Exécutable Windows autonome (pour partager sans installer Python)
+
+Un `.exe` unique, construit avec [PyInstaller](https://pyinstaller.org/), qui embarque Python et l'interface. Double-clic → le navigateur s'ouvre tout seul. Rien à installer.
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --name JB-SATRACK --add-data "web;web" --add-data "data/satellites.json;data" --add-data "data/tle_fallback.txt;data" app.py
+```
+
+L'exécutable est généré dans `dist/JB-SATRACK.exe`. Il crée son propre dossier `data/` juste à côté de lui (station.json, journal QSO, caches) — déplaçable, chaque copie garde sa configuration.
+
+Windows peut afficher un avertissement SmartScreen (« Éditeur inconnu ») au premier lancement car l'exécutable n'est pas signé numériquement : c'est normal pour un outil non commercial, cliquer sur **Plus d'infos → Exécuter quand même**.
+
 ## Configuration
 
 Tout est dans `data/station.json`, créé au premier démarrage :
