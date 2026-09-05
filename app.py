@@ -617,6 +617,18 @@ def main():
     log("JB-SATRACK sur http://%s:%d" % (args.host, args.port))
     if getattr(sys, "frozen", False):
         # exécutable autonome : pas de .bat pour ouvrir le navigateur, on le fait nous-mêmes
+        try:
+            import ctypes
+            ctypes.windll.kernel32.SetConsoleTitleW("JB-SATRACK — NE FERME PAS CETTE FENÊTRE")
+        except Exception:
+            pass
+        print("")
+        print("=" * 62)
+        print("  JB-SATRACK tourne dans CETTE fenêtre.")
+        print("  NE LA FERME PAS tant que tu utilises l'appli.")
+        print("  (tu peux la minimiser ; la fermer arrête le serveur)")
+        print("=" * 62)
+        print("")
         url = "http://127.0.0.1:%d" % args.port
         threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
