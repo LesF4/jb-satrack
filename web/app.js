@@ -239,7 +239,12 @@ const MAP = (function () {
 
   function build() {
     const el = $('worldmap'); if (!el || typeof L === 'undefined') return false;
-    map = L.map(el, { worldCopyJump: true }).setView([S.station.lat, S.station.lon], 4);
+    map = L.map(el, {
+      worldCopyJump: true,
+      zoomSnap: 0.25,             // paliers de zoom plus fins
+      zoomDelta: 0.25,
+      wheelPxPerZoomLevel: 200    // molette moins sensible : il faut défiler plus pour zoomer d'un cran
+    }).setView([S.station.lat, S.station.lon], 4);
 
     L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 17,
