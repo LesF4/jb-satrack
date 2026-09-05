@@ -296,7 +296,7 @@ td .loc{color:var(--ink-2); font-size:11px;}
 /* ---- modale de configuration station ---- */
 .modal-veil{
   position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
-  background:rgba(4,8,16,0.72); backdrop-filter:blur(4px); padding:20px;
+  background:rgba(4,8,16,0.88); padding:20px;
 }
 .modal{
   width:100%; max-width:420px; border:1px solid var(--panel-line); border-radius:14px;
