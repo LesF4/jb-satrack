@@ -598,7 +598,38 @@ class Handler(BaseHTTPRequestHandler):
         return self.send(404, {"error": "not found"})
 
 
+def disable_windows_throttling():
+    """Empêche Windows de ralentir le processus quand sa fenêtre passe en arrière-plan
+    (mode Efficacité / EcoQoS) — sinon le serveur peut devenir très lent à répondre
+    dès que le navigateur a le focus, ce qui ressemble à un blocage lors d'un
+    enregistrement depuis l'interface."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetCurrentProcess()
+
+        ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
+        kernel32.SetPriorityClass(handle, ABOVE_NORMAL_PRIORITY_CLASS)
+
+        class PROCESS_POWER_THROTTLING_STATE(ctypes.Structure):
+            _fields_ = [("Version", ctypes.c_ulong),
+                        ("ControlMask", ctypes.c_ulong),
+                        ("StateMask", ctypes.c_ulong)]
+
+        PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1
+        ProcessPowerThrottling = 4
+        state = PROCESS_POWER_THROTTLING_STATE(1, PROCESS_POWER_THROTTLING_EXECUTION_SPEED, 0)
+        kernel32.SetProcessInformation(handle, ProcessPowerThrottling,
+                                        ctypes.byref(state), ctypes.sizeof(state))
+        log("limitation de puissance Windows désactivée pour ce processus")
+    except Exception as e:
+        log("désactivation de la limitation Windows impossible : %s" % e)
+
+
 def main():
+    disable_windows_throttling()
     ap = argparse.ArgumentParser(description="JB-SATRACK — suivi satellites radioamateur")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8073)))

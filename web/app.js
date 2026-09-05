@@ -758,5 +758,10 @@ window.addEventListener('DOMContentLoaded', () => {
   $('s-cancel').onclick = closeSetup;
   $('s-save').onclick = saveSetup;
   $('s-loc').oninput = updateSetupPreview;
+  // clavier : Entrée = Enregistrer, Échap = Annuler (au cas où le clic sur le bouton ne réagirait pas)
+  document.getElementById('setup-veil').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveSetup(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeSetup(); }
+  });
   boot();
 });
