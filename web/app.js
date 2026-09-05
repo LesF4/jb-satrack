@@ -724,11 +724,30 @@ async function saveSetup() {
   if (!call) { $('s-error').textContent = 'Indicatif requis.'; return; }
   if (!pos) { $('s-error').textContent = 'Locator invalide (ex. JN37QS).'; return; }
   const payload = { callsign: call, locator: loc, city, timezone: tz, lat: pos.lat, lon: pos.lon, configured: true };
-  $('s-save').textContent = '...';
+
+  $('s-error').textContent = '';
+  $('s-save').disabled = true; $('s-cancel').disabled = true;
+  $('s-save').textContent = 'Enregistrement...';
+
+  let station;
   try {
-    const station = await fetch('/api/station', {
+    const resp = await fetch('/api/station', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-    }).then(r => r.json());
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    station = await resp.json();
+  } catch (e) {
+    $('s-error').textContent = 'Échec de l\'enregistrement : ' + e.message;
+    $('s-save').disabled = false; $('s-cancel').disabled = false;
+    $('s-save').textContent = 'Enregistrer';
+    return;
+  }
+
+  // la sauvegarde a réussi ici, quoi qu'il arrive ensuite — on le montre clairement
+  $('s-save').textContent = '✓ Enregistré';
+  $('s-preview').textContent = 'Configuration enregistrée.';
+
+  try {
     S.station = station;
     S.observer = {
       longitude: station.lon * D, latitude: station.lat * D,
@@ -736,12 +755,15 @@ async function saveSetup() {
     };
     renderHeader();
     computeAll();
-    closeSetup();
   } catch (e) {
-    $('s-error').textContent = 'Échec de l\'enregistrement : ' + e.message;
-  } finally {
-    $('s-save').textContent = 'Enregistrer';
+    console.warn('rafraîchissement post-enregistrement :', e);
   }
+
+  setTimeout(() => {
+    closeSetup();
+    $('s-save').disabled = false; $('s-cancel').disabled = false;
+    $('s-save').textContent = 'Enregistrer';
+  }, 900);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
