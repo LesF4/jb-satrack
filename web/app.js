@@ -716,6 +716,7 @@ function updateSetupPreview() {
 }
 
 async function saveSetup() {
+  if ($('s-save').disabled) return;   // évite un double envoi si déjà en cours
   const call = $('s-call').value.trim().toUpperCase();
   const loc = $('s-loc').value.trim().toUpperCase();
   const city = $('s-city').value.trim();
@@ -780,10 +781,5 @@ window.addEventListener('DOMContentLoaded', () => {
   $('s-cancel').onclick = closeSetup;
   $('s-save').onclick = saveSetup;
   $('s-loc').oninput = updateSetupPreview;
-  // clavier : Entrée = Enregistrer, Échap = Annuler (au cas où le clic sur le bouton ne réagirait pas)
-  document.getElementById('setup-veil').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); saveSetup(); }
-    else if (e.key === 'Escape') { e.preventDefault(); closeSetup(); }
-  });
   boot();
 });
