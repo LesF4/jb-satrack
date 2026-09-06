@@ -87,7 +87,13 @@ function findPasses(rec, fromMs, hours, minEl) {
         if (e > maxEl) { maxEl = e; maxT = k; }
       }
       if (maxEl >= minEl && los > aos) {
-        out.push({ aos, los, tca: maxT, maxEl, duration: (los - aos) / 1000 });
+        // aos/los = horizon géométrique (0°). workStart/workEnd = instants où le
+        // satellite franchit min_elevation_deg : c'est la fenêtre RÉELLEMENT
+        // exploitable, celle que montrent l'empreinte radio et la liaison sur la
+        // carte. Le bandeau d'orientation se cale dessus, pas sur aos/los.
+        const workStart = crossEl(rec, aos, maxT, minEl);
+        const workEnd = crossEl(rec, maxT, los, minEl);
+        out.push({ aos, los, tca: maxT, maxEl, duration: (los - aos) / 1000, workStart, workEnd });
       }
       t = los + 60e3;
       prevEl = elevationAt(rec, t);
@@ -103,6 +109,18 @@ function refine(rec, lo, hi) {                        // bisection sur el = 0
   for (let i = 0; i < 18; i++) {
     const mid = (lo + hi) / 2;
     if (elevationAt(rec, mid) > 0) hi = mid; else lo = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* Instant entre tA et tB où l'élévation vaut `target` (un seul croisement
+   supposé dans l'intervalle). Sert à trouver la fenêtre exploitable (>= minEl). */
+function crossEl(rec, tA, tB, target) {
+  let lo = tA, hi = tB;
+  const sideA = elevationAt(rec, lo) >= target;
+  for (let i = 0; i < 22; i++) {
+    const mid = (lo + hi) / 2;
+    if ((elevationAt(rec, mid) >= target) === sideA) lo = mid; else hi = mid;
   }
   return (lo + hi) / 2;
 }
@@ -697,14 +715,21 @@ function tickClock() {
   renderTleChip();                     // « il y a … » compte en temps réel
   const p = S.selectedPass;
   if (p) {
-    const target = t < p.aos ? p.aos : p.los;
-    const label = t < p.aos ? 'avant AOS' : 'avant LOS';
+    /* le compte à rebours vise la FENÊTRE EXPLOITABLE (>= minEl), pas l'horizon
+       géométrique : « exploitable dans … », puis « fenêtre utile … », puis
+       « avant LOS » sur la queue de descente. */
+    const ws = p.workStart || p.aos, we = p.workEnd || p.los;
+    let target, label;
+    if (t < ws) { target = ws; label = 'avant fenêtre utile'; }
+    else if (t <= we) { target = we; label = 'fenêtre utile'; }
+    else { target = p.los; label = 'avant LOS'; }
     let s = Math.max(0, Math.round((target - t) / 1000));
     const h = Math.floor(s / 3600); s -= h * 3600;
     const m = Math.floor(s / 60); s -= m * 60;
     $('countdown').innerHTML = pad(h) + '<i>:</i>' + pad(m) + '<i>:</i>' + pad(s);
-    $('cdlabel').textContent = label + ' — AOS ' + hhmmssLoc(new Date(p.aos)) + ' loc.';
-    $('countdown').classList.toggle('live', t >= p.aos && t <= p.los);
+    $('cdlabel').textContent = label + ' — AOS ' + hhmmssLoc(new Date(p.aos)) +
+      ' · utile ' + hhmmssLoc(new Date(ws)) + ' loc.';
+    $('countdown').classList.toggle('live', t >= ws && t <= we);
     renderMemo(); renderOrient();
     if (t > p.los + 5000) computeAll();       // passage terminé : on recalcule
   }
@@ -937,10 +962,16 @@ function applyIssOverrides() {
       mode.note = m.sstv.excerpt || mode.note;
     }
   });
-  // le mode ISS mis en avant = celui qui est actif
-  const actif = iss.modes.find(x => x.state === 'active');
-  if (actif) { iss.modes = [actif].concat(iss.modes.filter(x => x !== actif)); }
-  if (S.passes.length) { renderPassTable(); renderNextPass(); }
+  /* PHONIE en tête : c'est ce qu'on travaille (SSB/FM voix). On ne met en avant
+     qu'un mode VOIX actif ; APRS (données) et SSTV restent en dessous même
+     signalés « actifs » par ARISS — ils auront leur propre entrée plus tard. */
+  const actif = iss.modes.find(x => x.type === 'fm' && x.state === 'active');
+  if (actif && iss.modes[0] !== actif) {
+    iss.modes = [actif].concat(iss.modes.filter(x => x !== actif));
+    if (S.passes.length) computeAll();     // les passages portent modes[0] : on recalcule
+  } else if (S.passes.length) {
+    renderPassTable(); renderNextPass();   // sinon simple maj des fréquences/notes en place
+  }
 }
 
 /* ------------------------------------------------------- trajectoire Az/El */
@@ -1280,24 +1311,43 @@ function renderOrient() {
   const p = S.selectedPass;
   if (!p) { box.hidden = true; return; }
   box.hidden = false;
-  const t = Date.now(), live = t >= p.aos && t <= p.los;
+  const t = Date.now();
   const q = quality(p.maxEl, (S.station.antenna && S.station.antenna.cone_of_silence_deg) || 75);
-  const reste = durLong(Math.max(0, Math.round(((live ? p.los : p.aos) - t) / 1000)));
-  box.classList.toggle('calm', !live);
-  Icons.set(box.querySelector('.badge .ic'), live ? 'Activity' : 'Clock');
-  if (live) {
-    $('orient-head').innerHTML = '<b>' + p.satName + ' passe au-dessus de toi en ce moment.</b>';
-    let sub = 'Il te reste <span class="num">' + reste + '</span>.';
+  const minEl = (S.station && S.station.min_elevation_deg) || 5;
+  const ws = p.workStart || p.aos, we = p.workEnd || p.los;
+  const workable = t >= ws && t <= we;              // au-dessus de minEl : la fenêtre utile
+  const rising = t >= p.aos && t < ws;              // passage commencé mais encore trop bas
+  const falling = t > we && t <= p.los;             // redescendu sous minEl, pas encore couché
+  const stNow = (rising || falling) ? stateAt(p.rec, new Date(t)) : null;
+
+  box.classList.toggle('calm', !workable);
+  Icons.set(box.querySelector('.badge .ic'), workable ? 'Activity' : 'Clock');
+
+  if (workable) {
+    const reste = durLong(Math.max(0, Math.round((we - t) / 1000)));
+    $('orient-head').innerHTML = '<b>' + p.satName + ' est exploitable en ce moment.</b>';
+    let sub = 'Fenêtre utile encore <span class="num">' + reste + '</span>.';
     if (p.mode.down) sub += ' Écoute sur <span class="num">' + mhz(p.mode.down) + '</span> MHz';
     if (p.mode.up) sub += ', émets sur <span class="num">' + mhz(p.mode.up) + '</span>';
-    sub += '. Il culmine à ' + p.maxEl.toFixed(0) + '°';
+    sub += '. Culmine à ' + p.maxEl.toFixed(0) + '°';
     sub += q.k === 'good' ? ' — bonne élévation pour ton omni.' : ' — ' + q.why.toLowerCase();
     $('orient-sub').innerHTML = sub;
+  } else if (rising) {
+    $('orient-head').innerHTML = '<b>' + p.satName + ' se lève sur ton horizon.</b>';
+    $('orient-sub').innerHTML = 'Encore trop bas (<span class="num">' +
+      (stNow ? stNow.el.toFixed(0) : '0') + '°</span>) pour ton omni. Exploitable dans <span class="num">' +
+      durLong(Math.max(0, Math.round((ws - t) / 1000))) + '</span>, quand il passera au-dessus de ' +
+      minEl + '°. Il culminera à ' + p.maxEl.toFixed(0) + '°.';
+  } else if (falling) {
+    $('orient-head').innerHTML = '<b>' + p.satName + ' redescend.</b>';
+    $('orient-sub').innerHTML = 'Repassé sous ' + minEl + '° (<span class="num">' +
+      (stNow ? stNow.el.toFixed(0) : '0') + '°</span>) — bientôt hors de portée.';
   } else {
     $('orient-head').innerHTML = '<b>Rien au-dessus de toi en ce moment.</b>';
-    $('orient-sub').innerHTML = 'Prochain passage : <b>' + p.satName + '</b> dans <span class="num">' +
-      reste + '</span>, à <span class="num">' + hhmmLoc(new Date(p.aos)) + '</span>. Il montera à ' +
-      p.maxEl.toFixed(0) + '° — ' + q.why.toLowerCase();
+    $('orient-sub').innerHTML = 'Prochain passage : <b>' + p.satName + '</b> vers <span class="num">' +
+      hhmmLoc(new Date(p.aos)) + '</span>, exploitable dès <span class="num">' + hhmmLoc(new Date(ws)) +
+      '</span> (dans <span class="num">' + durLong(Math.max(0, Math.round((ws - t) / 1000))) +
+      '</span>). Il montera à ' + p.maxEl.toFixed(0) + '° — ' + q.why.toLowerCase();
   }
 }
 
@@ -1803,6 +1853,15 @@ function selfTest() {
   ok(matchTle({ match: ['INTROUVABLE'], norad: 424242 }) === null,
      'matchTle : rien trouvé -> null');
   S.tle = savedTle;
+
+  /* crossEl : trouve les instants où l'élévation franchit le seuil exploitable.
+     Une erreur ici = un bandeau « écoute maintenant » décalé de plusieurs
+     minutes par rapport à l'empreinte de la carte, sans rien signaler. */
+  const _elevAt = elevationAt;
+  elevationAt = (_r, ms) => 30 - (25 / 160000) * (ms - 500) * (ms - 500);  // 5° à t=100 et t=900
+  const cA = crossEl(null, 0, 500, 5), cB = crossEl(null, 500, 1000, 5);
+  ok(Math.abs(cA - 100) < 3 && Math.abs(cB - 900) < 3, 'crossEl : les deux franchissements du seuil');
+  elevationAt = _elevAt;
 
   const bad = out.filter(l => l[0] === '✗').length;
   console.log('%cselftest JB-SATRACK — ' + (out.length - bad) + '/' + out.length,
