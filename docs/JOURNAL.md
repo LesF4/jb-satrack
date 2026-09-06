@@ -4,6 +4,18 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-06 (soir) — Documentation complète du projet
+
+**Fait**
+- `docs/ARCHITECTURE.md` : carte technique complète (serveur, interface, flux de
+  données, algorithmes, arborescence).
+- `docs/API.md` : toutes les routes HTTP (requête / réponse / comportement).
+- `docs/DONNEES.md` : chaque fichier de `data/`, schéma, format du catalogue
+  `satellites.json` + comment ajouter un satellite.
+- `docs/OPERATIONS.md` : lancer, mettre à jour, diagnostiquer (tableau de
+  symptômes), construire l'exe, publier une version.
+- `docs/README.md` : index de toute la doc. Lien ajouté depuis `README.md`.
+
 ## 2026-09-06 — Refonte, fiabilisation TLE, empaquetage, consolidation
 
 **Contexte**

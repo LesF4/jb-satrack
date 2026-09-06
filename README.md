@@ -196,6 +196,16 @@ Les décisions de conception, les valeurs exactes et les contrastes mesurés son
 - Le son ne peut démarrer qu'après un premier clic dans la page : les navigateurs refusent d'ouvrir un contexte audio sans geste de l'utilisateur. Un onglet rouvert et jamais cliqué reste donc silencieux jusqu'au premier clic.
 - Les icônes sont récupérées au premier lancement (comme satellite.js / Leaflet) : sans Internet à ce moment-là, l'interface s'affiche sans icône (le texte reste lisible), puis les icônes apparaissent une fois la connexion revenue.
 
+## Documentation
+
+Toute la doc technique est dans [`docs/`](docs/README.md) :
+[Architecture](docs/ARCHITECTURE.md) · [API HTTP](docs/API.md) ·
+[Fichiers de données](docs/DONNEES.md) · [Exploitation & diagnostic](docs/OPERATIONS.md) ·
+[Décisions](docs/DECISIONS.md) · [État](docs/ETAT.md) · [Journal](docs/JOURNAL.md) ·
+[TODO](docs/TODO.md).
+Versions : [`CHANGELOG.md`](CHANGELOG.md) · Notes agents : [`CLAUDE.md`](CLAUDE.md) ·
+Produit : [`PRODUIT.md`](PRODUIT.md).
+
 ---
 
 Station F4MAJ · JN37QS · Illzach
