@@ -1,0 +1,66 @@
+name: Build Windows
+
+# Se déclenche sur un tag "v*" (ex. v1.0.0) -> construit le portable + l'installeur
+# et les attache à la Release GitHub correspondante. Lançable aussi à la main.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendance de build
+        run: pip install pyinstaller
+
+      - name: Amorcer data/ (libs + cache TLE) pour un 1er lancement hors ligne
+        continue-on-error: true
+        run: >
+          python -c "import app;
+          [f() for f in (app.ensure_satjs, app.ensure_leaflet_js, app.ensure_leaflet_css, app.ensure_fonts)];
+          app.refresh_tle(force=True)"
+
+      - name: Inno Setup (pour l'installeur)
+        run: choco install innosetup --no-progress -y
+
+      - name: Version de l'installeur = tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $ver = $env:GITHUB_REF_NAME -replace '^v',''
+          (Get-Content packaging/installer.iss) `
+            -replace '#define AppVersion "[^"]*"', "#define AppVersion `"$ver`"" `
+            | Set-Content packaging/installer.iss
+
+      - name: Construire (portable + installeur)
+        run: python packaging/build.py --zip --installer
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jb-satrack-windows
+          path: |
+            packaging/dist/JB-SATRACK-portable.zip
+            packaging/dist/JB-SATRACK-Setup-*.exe
+
+      - name: Publier sur la Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $tag --notes "Build automatique. Installation : voir packaging/README.md. Au 1er lancement, Windows SmartScreen : « Informations complementaires » puis « Executer quand meme » (appli non signee)."
+          }
+          $zip   = (Get-ChildItem packaging/dist/JB-SATRACK-portable.zip).FullName
+          $setup = (Get-ChildItem packaging/dist/JB-SATRACK-Setup-*.exe).FullName
+          gh release upload $tag $zip $setup --clobber
