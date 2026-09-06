@@ -9,3 +9,4 @@ __pycache__/
 build/
 dist/
 *.spec
+!packaging/jb-satrack.spec   # celui-ci est de la config écrite à la main, on le versionne
