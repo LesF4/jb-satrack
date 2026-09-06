@@ -3,6 +3,17 @@
 Format : le plus récent en haut. Les binaires sont dans les
 [Releases](https://github.com/F4MAJ/jb-satrack/releases) (dépôt privé).
 
+## v2.0.2 — 2026-09-06
+
+- **Bandeau et compte à rebours calés sur la fenêtre exploitable** (≥
+  `min_elevation_deg`), plus sur l'horizon géométrique : nouvel état « X se lève
+  sur ton horizon — exploitable dans … », et l'« écoute maintenant » apparaît en
+  même temps que l'empreinte radio et la liaison sur la carte.
+- **ISS : phonie en mode principal** — répéteur FM voix cross-band
+  (145.990 ↑ / 437.800 ↓, CTCSS 67) à la place de l'APRS. APRS/SSTV restent dans
+  l'onglet « Radio de l'ISS ».
+- Documentation à jour (`docs/`, README) ; dépôt consolidé en un dossier unique.
+
 ## v2.0.1 — 2026-09-06
 
 - Pied de page : **© 2026 F4MAJ — Tous droits réservés** ; ajout d'un `LICENSE`

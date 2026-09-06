@@ -1,5 +1,9 @@
 # JB-SATRACK — modifications du 6 septembre 2026
 
+> Ce document détaille la grosse mise à niveau (v2.0.0). Le journal version par
+> version est dans [`CHANGELOG.md`](CHANGELOG.md) ; l'état courant dans
+> [`docs/ETAT.md`](docs/ETAT.md).
+
 Objet : **la mise à jour des TLE (bouton « Rafraîchir ») fonctionne maintenant
 depuis la machine de la station**, récupère **la totalité du segment
 radioamateur + ISS**, et son résultat est visible et réel (pas cosmétique).

@@ -9,7 +9,7 @@ Aucune dépendance : bibliothèque standard Python 3.8+ uniquement.
 
 Le serveur :
   * sert l'interface web (dossier web/)
-  * télécharge et met en cache les TLE CelesTrak (rafraîchis toutes les 6 h)
+  * télécharge et met en cache les TLE (AMSAT + SatNOGS + R4UAB, fusionnés ; rafraîchis toutes les heures)
   * récupère une fois satellite.js (calcul SGP4 côté navigateur) et le met en cache
   * stocke la configuration station et le journal de trafic (QSO) en JSON
   * exporte le journal en ADIF

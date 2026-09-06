@@ -2,8 +2,8 @@
   "callsign": "F4MAJ",
   "locator": "JN37QS",
   "city": "Illzach",
-  "lat": 47.7719,
-  "lon": 7.3444,
+  "lat": 47.7708,
+  "lon": 7.375,
   "alt_m": 240,
   "antenna": {
     "type": "omnidirectionnelle fixe",

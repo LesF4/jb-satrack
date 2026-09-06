@@ -21,7 +21,7 @@ Pensé pour une **antenne omnidirectionnelle fixe à 9 m** (pas de rotor) et un 
 - **Sons d'interface** : un vocabulaire court et discret, entièrement synthétisé (aucun fichier audio n'est téléchargé). Un clic générique pour la navigation ; des sons distincts et reconnaissables pour ce qui change l'état de la vue — zoom avant/arrière, recentrage sur la station, prise et abandon du suivi, réussite ou échec d'un rafraîchissement. Bouton **Son / Muet** dans l'en-tête, mémorisé par poste.
 - **État radio de l'ISS relevé automatiquement** sur la page officielle ARISS toutes les heures : répéteur voix, APRS, SSTV, contacts scolaires, extinctions programmées. Tu sais avant le passage si la radio est en service — et **sur quelle fréquence APRS** (elle bascule entre 145.825 et 437.825 selon la radio utilisée à bord).
 - **Journal de trafic** avec export ADIF.
-- **TLE rafraîchis automatiquement toutes les heures** depuis CelesTrak, avec cache local et repli si le réseau tombe.
+- **TLE rafraîchis automatiquement toutes les heures** depuis plusieurs sources fusionnées (AMSAT, SatNOGS, R4UAB), avec cache local et repli si le réseau tombe.
 
 ## Installation
 
@@ -46,18 +46,24 @@ python3 app.py --port 9000
 
 Sous Windows, place le dossier sur **D:** (par exemple `D:\jb-satrack`) et lance `python app.py`.
 
-### Exécutable Windows autonome (pour partager sans installer Python)
+### Application Windows (pour partager sans installer Python)
 
-Un `.exe` unique, construit avec [PyInstaller](https://pyinstaller.org/), qui embarque Python et l'interface. Double-clic → le navigateur s'ouvre tout seul. Rien à installer.
+`packaging/` construit l'application prête à l'emploi — code et interface
+inchangés, juste emballés.
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --name JB-SATRACK --add-data "web;web" --add-data "data/satellites.json;data" --add-data "data/tle_fallback.txt;data" app.py
+python packaging/build.py --zip        # -> packaging/dist/JB-SATRACK-portable.zip (à partager)
+python packaging/build.py --installer  # -> installeur Inno Setup (Inno Setup requis)
 ```
 
-L'exécutable est généré dans `dist/JB-SATRACK.exe`. Il crée son propre dossier `data/` juste à côté de lui (station.json, journal QSO, caches) — déplaçable, chaque copie garde sa configuration.
+Le `.exe` range ses données dans `%LOCALAPPDATA%\JB-SATRACK\` (station.json,
+journal, caches) et fonctionne hors ligne dès le premier lancement. Non signé →
+avertissement SmartScreen au 1er lancement : **Informations complémentaires →
+Exécuter quand même**. Détails : [`packaging/README.md`](packaging/README.md).
 
-Windows peut afficher un avertissement SmartScreen (« Éditeur inconnu ») au premier lancement car l'exécutable n'est pas signé numériquement : c'est normal pour un outil non commercial, cliquer sur **Plus d'infos → Exécuter quand même**.
+La CI (`.github/workflows/build.yml`) reconstruit portable + installeur à chaque
+tag `v*` et les joint à la Release GitHub (dépôt privé).
 
 ## Configuration
 
@@ -103,7 +109,7 @@ En bande basse (145 MHz) le Doppler est d'environ ±3 kHz, en 435 MHz d'environ 
 ## Précision
 
 - Propagation **SGP4** via [satellite.js](https://github.com/shashwatak/satellite-js), la même famille d'algorithmes que Gpredict ou SatPC32. Le serveur télécharge la bibliothèque au premier lancement et la met en cache dans `data/vendor/`.
-- Éléments orbitaux **CelesTrak** (groupes `amateur` et `stations`), rafraîchis toutes les heures. Un TLE de moins de 24 h donne une précision de l'ordre de la seconde sur les heures de passage.
+- Éléments orbitaux depuis **AMSAT + SatNOGS + R4UAB** (fusionnés, l'orbite la plus récente gagne ; CelesTrak reste un repli). Rafraîchis toutes les heures. Un TLE de moins de 24 h donne une précision de l'ordre de la seconde sur les heures de passage.
 - Les fréquences du catalogue sont vérifiées manuellement (sources AMSAT, F5SVP). Un satellite peut tomber en panne ou changer de mode : **vérifie [amsat.org/status](https://www.amsat.org/status/) avant un QSO important**. Le statut ISS, lui, est relevé automatiquement.
 - Carte : imagerie satellite **Esri World Imagery** (fond + libellés/frontières) via [Leaflet](https://leafletjs.com/), mise en cache localement comme satellite.js. Aucune clé requise, mais nécessite Internet pour charger les tuiles (le reste de l'appli continue de fonctionner hors-ligne une fois la page chargée).
 - Icônes : **[Reicon](https://reicon.dev/icons?weight=filled)** (graisse *Filled*, licence MIT). Chaque icône est récupérée à l'unité depuis le paquet npm `reicon` (version épinglée), son tracé est extrait et mis en cache en SVG local dans `data/vendor/icons/` — même principe que satellite.js. **Toute** icône de l'interface vient de cette banque : voir [`web/icons.js`](web/icons.js).
@@ -184,7 +190,7 @@ Les décisions de conception, les valeurs exactes et les contrastes mesurés son
 ## Limites connues
 
 - Pas de commande CAT du poste (limitation matérielle du FTM-500D).
-- Le catalogue couvre les satellites principaux ; les TLE d'un satellite absent du groupe `amateur` CelesTrak ne seront pas trouvés (l'interface l'indique).
+- Le catalogue de fréquences couvre les satellites principaux ; un satellite suivi mais absent de toutes les sources TLE n'aura pas de position (l'interface l'indique).
 - L'analyse de la page ARISS repose sur son texte : si ARISS change la mise en page, le statut peut passer en « inconnu » — l'interface affiche alors le lien vers la page d'origine.
 - **La notification système n'existe que si la page est ouverte.** Il n'y a pas de service worker : c'est l'onglet qui surveille l'heure. Navigateur fermé, aucune alerte ne part — la pastille et le son non plus. C'est un choix assumé (voir [`DESIGN.md`](DESIGN.md)), pas un oubli.
 - Le son ne peut démarrer qu'après un premier clic dans la page : les navigateurs refusent d'ouvrir un contexte audio sans geste de l'utilisateur. Un onglet rouvert et jamais cliqué reste donc silencieux jusqu'au premier clic.
