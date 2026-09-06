@@ -1,0 +1,15 @@
+Copyright © 2026 F4MAJ. Tous droits réservés.
+
+JB-SATRACK est un logiciel privé. Aucune licence d'utilisation, de copie, de
+modification ou de redistribution n'est accordée. L'application peut être
+transmise à des tiers par l'auteur ou avec son accord, pour un usage personnel
+en radioamateurisme uniquement.
+
+Composants tiers, sous leurs licences respectives :
+  - Leaflet — BSD 2-Clause
+  - satellite.js — MIT
+  - Reicon (icônes, graisse Filled) — MIT
+  - Inter, JetBrains Mono (polices) — SIL Open Font License 1.1
+  - Tuiles cartographiques — Esri / Maxar / Earthstar Geographics
+Données : TLE via AMSAT, SatNOGS, R4UAB ; statut ISS via ARISS ; météo via
+Open-Meteo.

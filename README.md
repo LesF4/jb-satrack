@@ -194,5 +194,5 @@ Les décisions de conception, les valeurs exactes et les contrastes mesurés son
 
 Station F4MAJ · JN37QS · Illzach
 
-© 2026 F4MAJ & Claude IA (Anthropic) — création conjointe, tous droits réservés.
+© 2026 F4MAJ — Tous droits réservés.
 Icônes : [Reicon](https://reicon.dev) (MIT) · cartes [Esri](https://www.esri.com/) via [Leaflet](https://leafletjs.com/) · calcul [satellite.js](https://github.com/shashwatak/satellite-js) (MIT).
