@@ -6,109 +6,257 @@
       "id": "ISS",
       "name": "ISS (ZARYA)",
       "norad": 25544,
-      "match": ["ISS (ZARYA)", "ISS", "ZARYA"],
+      "match": [
+        "ISS (ZARYA)",
+        "ISS",
+        "ZARYA"
+      ],
       "priority": 1,
       "modes": [
-        {"label": "APRS / Digipeater", "type": "digi", "up": 145.825, "down": 145.825, "mod": "FM 1200 bd AFSK", "ctcss": null,
-         "note": "Toujours actif quand le packet est en service. Path ARISS. Idéal antenne omni."},
-        {"label": "Répéteur FM cross-band", "type": "fm", "up": 145.990, "down": 437.800, "mod": "FM", "ctcss": 67.0,
-         "note": "Actif par périodes. Vérifier ariss.org avant le passage."},
-        {"label": "Voix simplex ARISS", "type": "fm", "up": 145.800, "down": 145.800, "mod": "FM", "ctcss": null,
-         "note": "Contacts scolaires ARISS / équipage. Écoute seule la plupart du temps."},
-        {"label": "SSTV", "type": "sstv", "up": null, "down": 145.800, "mod": "FM / PD120", "ctcss": null,
-         "note": "Événements ponctuels, images à décoder avec le Digirig."}
+        {
+          "label": "Répéteur FM cross-band",
+          "type": "fm",
+          "up": 145.99,
+          "down": 437.8,
+          "mod": "FM",
+          "ctcss": 67.0,
+          "note": "Actif par périodes. Vérifier ariss.org avant le passage."
+        },
+        {
+          "label": "Voix simplex ARISS",
+          "type": "fm",
+          "up": 145.8,
+          "down": 145.8,
+          "mod": "FM",
+          "ctcss": null,
+          "note": "Contacts scolaires ARISS / équipage. Écoute seule la plupart du temps."
+        },
+        {
+          "label": "APRS / Digipeater",
+          "type": "digi",
+          "up": 145.825,
+          "down": 145.825,
+          "mod": "FM 1200 bd AFSK",
+          "ctcss": null,
+          "note": "Toujours actif quand le packet est en service. Path ARISS. Idéal antenne omni."
+        },
+        {
+          "label": "SSTV",
+          "type": "sstv",
+          "up": null,
+          "down": 145.8,
+          "mod": "FM / PD120",
+          "ctcss": null,
+          "note": "Événements ponctuels, images à décoder avec le Digirig."
+        }
       ]
     },
     {
       "id": "SO-50",
       "name": "SO-50 (SaudiSat 1C)",
       "norad": 27607,
-      "match": ["SO-50", "SAUDISAT 1C", "SAUDISAT-1C"],
+      "match": [
+        "SO-50",
+        "SAUDISAT 1C",
+        "SAUDISAT-1C"
+      ],
       "priority": 2,
       "modes": [
-        {"label": "Répéteur FM V/U", "type": "fm", "up": 145.850, "down": 436.795, "mod": "FM", "ctcss": 67.0,
-         "note": "Tonalité 74.4 Hz pour maintenir le timer, salve 67.0 Hz pour l'armer. Le plus accessible en omni."}
+        {
+          "label": "Répéteur FM V/U",
+          "type": "fm",
+          "up": 145.85,
+          "down": 436.795,
+          "mod": "FM",
+          "ctcss": 67.0,
+          "note": "Tonalité 74.4 Hz pour maintenir le timer, salve 67.0 Hz pour l'armer. Le plus accessible en omni."
+        }
       ]
     },
     {
       "id": "AO-91",
       "name": "AO-91 (RadFxSat / Fox-1B)",
       "norad": 43017,
-      "match": ["AO-91", "RADFXSAT", "FOX-1B"],
+      "match": [
+        "AO-91",
+        "RADFXSAT",
+        "FOX-1B"
+      ],
       "priority": 3,
       "modes": [
-        {"label": "Répéteur FM V/U", "type": "fm", "up": 145.960, "down": 435.250, "mod": "FM", "ctcss": 67.0,
-         "note": "Batterie fatiguée : souvent actif seulement en plein soleil."}
+        {
+          "label": "Répéteur FM V/U",
+          "type": "fm",
+          "up": 145.96,
+          "down": 435.25,
+          "mod": "FM",
+          "ctcss": 67.0,
+          "note": "Batterie fatiguée : souvent actif seulement en plein soleil."
+        }
       ]
     },
     {
       "id": "PO-101",
       "name": "PO-101 (Diwata-2B)",
       "norad": 43678,
-      "match": ["PO-101", "DIWATA-2B", "DIWATA 2B"],
+      "match": [
+        "PO-101",
+        "DIWATA-2B",
+        "DIWATA 2B"
+      ],
       "priority": 4,
       "modes": [
-        {"label": "Répéteur FM U/V", "type": "fm", "up": 437.500, "down": 145.900, "mod": "FM", "ctcss": 141.3,
-         "note": "Activé sur créneaux programmés uniquement (voir AMSAT status)."}
+        {
+          "label": "Répéteur FM U/V",
+          "type": "fm",
+          "up": 437.5,
+          "down": 145.9,
+          "mod": "FM",
+          "ctcss": 141.3,
+          "note": "Activé sur créneaux programmés uniquement (voir AMSAT status)."
+        }
       ]
     },
     {
       "id": "RS-44",
       "name": "RS-44 (DOSAAF-85)",
       "norad": 44909,
-      "match": ["RS-44", "DOSAAF-85", "DOSAAF 85"],
+      "match": [
+        "RS-44",
+        "DOSAAF-85",
+        "DOSAAF 85"
+      ],
       "priority": 5,
       "modes": [
-        {"label": "Transpondeur linéaire inversé", "type": "linear", "up": 145.950, "down": 435.625,
-         "upRange": [145.935, 145.965], "downRange": [435.610, 435.640], "mod": "SSB/CW (montée LSB, descente USB)", "ctcss": null,
-         "note": "Orbite haute : passages longs (jusqu'à 20 min), très bon en omni. Nécessite SSB — pas faisable avec le FTM-500D."}
+        {
+          "label": "Transpondeur linéaire inversé",
+          "type": "linear",
+          "up": 145.95,
+          "down": 435.625,
+          "upRange": [
+            145.935,
+            145.965
+          ],
+          "downRange": [
+            435.61,
+            435.64
+          ],
+          "mod": "SSB/CW (montée LSB, descente USB)",
+          "ctcss": null,
+          "note": "Orbite haute : passages longs (jusqu'à 20 min), très bon en omni. Nécessite SSB — pas faisable avec le FTM-500D."
+        }
       ]
     },
     {
       "id": "FO-29",
       "name": "FO-29 (JAS-2)",
       "norad": 24278,
-      "match": ["FO-29", "JAS-2", "FUJI"],
+      "match": [
+        "FO-29",
+        "JAS-2",
+        "FUJI"
+      ],
       "priority": 6,
       "modes": [
-        {"label": "Transpondeur linéaire inversé", "type": "linear", "up": 145.950, "down": 435.850,
-         "upRange": [145.900, 146.000], "downRange": [435.800, 435.900], "mod": "SSB/CW", "ctcss": null,
-         "note": "Fonctionne par créneaux (satellite ancien). SSB requis."}
+        {
+          "label": "Transpondeur linéaire inversé",
+          "type": "linear",
+          "up": 145.95,
+          "down": 435.85,
+          "upRange": [
+            145.9,
+            146.0
+          ],
+          "downRange": [
+            435.8,
+            435.9
+          ],
+          "mod": "SSB/CW",
+          "ctcss": null,
+          "note": "Fonctionne par créneaux (satellite ancien). SSB requis."
+        }
       ]
     },
     {
       "id": "AO-73",
       "name": "AO-73 (FUNcube-1)",
       "norad": 39444,
-      "match": ["AO-73", "FUNCUBE-1", "FUNCUBE 1"],
+      "match": [
+        "AO-73",
+        "FUNCUBE-1",
+        "FUNCUBE 1"
+      ],
       "priority": 7,
       "modes": [
-        {"label": "Transpondeur linéaire + balise", "type": "linear", "up": 435.140, "down": 145.960,
-         "upRange": [435.130, 435.150], "downRange": [145.950, 145.970], "mod": "SSB/CW + télémétrie BPSK", "ctcss": null,
-         "note": "Télémétrie décodable avec le Digirig (Dashboard FUNcube)."}
+        {
+          "label": "Transpondeur linéaire + balise",
+          "type": "linear",
+          "up": 435.14,
+          "down": 145.96,
+          "upRange": [
+            435.13,
+            435.15
+          ],
+          "downRange": [
+            145.95,
+            145.97
+          ],
+          "mod": "SSB/CW + télémétrie BPSK",
+          "ctcss": null,
+          "note": "Télémétrie décodable avec le Digirig (Dashboard FUNcube)."
+        }
       ]
     },
     {
       "id": "AO-7",
       "name": "AO-7 (OSCAR 7)",
       "norad": 7530,
-      "match": ["AO-7", "OSCAR 7", "AO-07"],
+      "match": [
+        "AO-7",
+        "OSCAR 7",
+        "AO-07"
+      ],
       "priority": 8,
       "modes": [
-        {"label": "Mode B linéaire", "type": "linear", "up": 432.150, "down": 145.950,
-         "upRange": [432.125, 432.175], "downRange": [145.925, 145.975], "mod": "SSB/CW", "ctcss": null,
-         "note": "Lancé en 1974, alterne mode A/B selon l'éclairement. SSB requis."}
+        {
+          "label": "Mode B linéaire",
+          "type": "linear",
+          "up": 432.15,
+          "down": 145.95,
+          "upRange": [
+            432.125,
+            432.175
+          ],
+          "downRange": [
+            145.925,
+            145.975
+          ],
+          "mod": "SSB/CW",
+          "ctcss": null,
+          "note": "Lancé en 1974, alterne mode A/B selon l'éclairement. SSB requis."
+        }
       ]
     },
     {
       "id": "IO-117",
       "name": "IO-117 (GreenCube)",
       "norad": 53106,
-      "match": ["IO-117", "GREENCUBE", "GREENCUBE (IO-117)"],
+      "match": [
+        "IO-117",
+        "GREENCUBE",
+        "GREENCUBE (IO-117)"
+      ],
       "priority": 9,
       "modes": [
-        {"label": "Digipeater données MEO", "type": "digi", "up": 435.310, "down": 435.310, "mod": "1200 bd GMSK", "ctcss": null,
-         "note": "Orbite 6000 km : visible plus d'une heure, DX possible. Nécessite modem (Digirig + soundmodem)."}
+        {
+          "label": "Digipeater données MEO",
+          "type": "digi",
+          "up": 435.31,
+          "down": 435.31,
+          "mod": "1200 bd GMSK",
+          "ctcss": null,
+          "note": "Orbite 6000 km : visible plus d'une heure, DX possible. Nécessite modem (Digirig + soundmodem)."
+        }
       ]
     }
   ]
