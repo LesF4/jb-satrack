@@ -1,199 +1,323 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>JB-SATRACK · F4MAJ</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<!-- polices vendorisées par le serveur (data/vendor/fonts/) : l'exécutable
+     autonome garde sa typographie hors ligne. Si le fichier manque, on tombe
+     proprement sur la pile système déclarée dans style.css. -->
+<link rel="stylesheet" href="/vendor/fonts.css">
 <link rel="stylesheet" href="/vendor/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<canvas id="field"></canvas>
-<div class="veil"></div>
+<!-- thème appliqué avant le premier rendu : pas de flash au rechargement -->
+<script>/* sombre par défaut — c'est la direction retenue ; le choix de
+  l'utilisateur, lui, est mémorisé et prime */
+try{var t=localStorage.getItem('jbs-theme');
+  document.documentElement.dataset.theme=(t==='light'||t==='dark')?t:'dark';}catch(e){}</script>
 
-<div class="wrap">
+<div class="page">
 
   <header>
-    <div class="station">
-      <div class="callsign" id="callsign">—</div>
-      <div class="locator">Locator <b id="locatorval">—</b> · <span id="city"></span></div>
-      <div class="badges">
-        <span class="badge" id="antbadge">—</span>
-        <span class="badge" id="rigbadge">—</span>
-        <span class="badge" id="tlestatus">TLE…</span>
-        <button class="badge btn" id="btn-refresh">Rafraîchir TLE</button>
-        <button class="badge btn ghost" id="btn-settings" title="Réglages de la station">⚙ Réglages</button>
-      </div>
+    <div class="ident">
+      <span class="callsign" id="callsign">—</span>
+      <span class="meta">Locator <b id="locatorval">—</b> · <span id="city"></span></span>
     </div>
-    <div class="clockbox">
-      <div class="clock" id="localclock">--:--:--</div>
-      <div class="clocklabel">Heure locale</div>
+    <div class="chips">
+      <span class="chip" id="antbadge"><span class="ic" data-ic="SignalStream"></span><span class="t">—</span></span>
+      <span class="chip" id="rigbadge"><span class="ic" data-ic="Radio"></span><span class="t">—</span></span>
+      <span class="chip" id="tlestatus"><span class="ic" data-ic="Satellite"></span><span class="t">TLE…</span></span>
+    </div>
+    <div class="acts">
+      <!-- interrupteur d'état (aria-pressed). #alert-state n'apparaît que si une
+           action est attendue : autoriser les notifications, ou les débloquer -->
+      <button type="button" id="btn-alert" aria-pressed="false">
+        <span class="ic" data-ic="Bell"></span><span class="lbl">Alertes</span></button>
+      <span class="alert-state" id="alert-state" hidden></span>
+      <button type="button" id="btn-refresh"><span class="ic" data-ic="Refresh"></span>Rafraîchir</button>
+      <button type="button" id="btn-theme" aria-label="Basculer entre thème clair et sombre">
+        <span class="ic" data-ic="Moon"></span><span class="lbl">Thème</span></button>
+      <!-- son de l'interface : préférence par poste, comme le thème -->
+      <button type="button" id="btn-sound" title="Couper les sons de l'interface et de l'alerte">
+        <span class="ic" data-ic="VolumeHigh"></span><span class="lbl">Son</span></button>
+      <button type="button" id="btn-settings"><span class="ic" data-ic="Setting"></span>Réglages</button>
+    </div>
+    <div class="time">
+      <span class="num" id="localclock">--:--:--</span>
+      <span class="meta">heure locale</span>
     </div>
   </header>
 
-  <div class="previewtag" id="banner"><span class="dot"></span> <span id="missing"></span><span id="passcount"></span></div>
-
-  <div class="mappanel">
-    <div class="maphead">
-      <div class="t">Position temps réel · <span id="mapsat">—</span></div>
-      <div class="legend">
-        <span><i style="background:#4be3c7"></i>Satellite</span>
-        <span><i style="background:#ffb454"></i>Ma station</span>
-        <span><i style="background:rgba(75,227,199,0.25)"></i>Zone audible (élév. mini)</span>
-        <span><i style="background:#1a2438"></i>Zone de nuit</span>
-        <span>🌤 Météo (maintenant / bientôt)</span>
-      </div>
-    </div>
-    <div id="worldmap"></div>
-    <div class="readouts">
-      <div class="ro"><div class="k">Distance</div><div class="v live" id="ro-dist">—</div></div>
-      <div class="ro"><div class="k">Vitesse</div><div class="v" id="ro-speed">—</div></div>
-      <div class="ro"><div class="k">Altitude</div><div class="v" id="ro-alt">—</div></div>
-      <div class="ro"><div class="k">Position sat</div><div class="v" id="ro-pos">—</div></div>
-      <div class="ro"><div class="k">Azimut / Élév.</div><div class="v" id="ro-azel">—</div></div>
-      <div class="ro"><div class="k">Visibilité</div><div class="v" id="ro-vis">—</div></div>
+  <!-- phrase d'orientation : la seule chose de la page écrite comme on parle -->
+  <div class="orient" id="orient" hidden>
+    <div class="badge"><span class="ic" data-ic="Activity"></span></div>
+    <div class="txt">
+      <div class="head" id="orient-head"></div>
+      <div class="sub" id="orient-sub"></div>
     </div>
   </div>
 
-  <div class="hero">
-    <div class="panel">
-      <h2>Passage sélectionné <span class="tag">COMPTE À REBOURS</span></h2>
-      <div class="nextsat">
-        <span class="name" id="nextname">—</span>
-        <span class="modepill" id="nextmode">—</span>
-      </div>
-      <div class="countdown" id="countdown">--:--:--</div>
-      <div class="countdown-label" id="cdlabel">—</div>
+  <!-- pastilles d'annonce : remplies par JS, vidées toutes seules -->
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
-      <div class="passfacts">
-        <div class="fact"><div class="k">Élév. max</div><div class="v" id="f-maxel">—</div></div>
-        <div class="fact"><div class="k">Durée</div><div class="v" id="f-dur">—</div></div>
-        <div class="fact"><div class="k">Az AOS → LOS</div><div class="v" id="f-az">—</div></div>
-        <div class="fact"><div class="k">Qualité omni</div><div class="v" id="f-qual">—</div></div>
-      </div>
+  <div class="banner" id="banner" hidden>
+    <span class="ic" data-ic="TriangleWarning"></span>
+    <span id="missing"></span><span class="meta" id="passcount"></span>
+  </div>
 
-      <div class="freqrow">
-        <div class="freqbox">
-          <div class="k">Uplink (toi → sat)</div>
-          <div class="v" id="txfreq">—</div>
-          <div class="doppler up" id="txdop">—</div>
-          <div class="pl" id="ctcssval">—</div>
+  <section class="block framed">
+    <h2><span class="ic" data-ic="Activity"></span>Qu’est-ce qui se passe actuellement&nbsp;?</h2>
+    <div class="now">
+
+      <div class="block">
+        <div class="satline">
+          <span class="satname" id="nextname">—</span>
+          <span class="modepill" id="nextmode">—</span>
         </div>
-        <div class="freqbox">
-          <div class="k">Downlink (sat → toi)</div>
-          <div class="v" id="rxfreq">—</div>
-          <div class="doppler down" id="rxdop">—</div>
-          <div class="pl" id="modval">—</div>
+        <div class="cdblock">
+          <span class="countdown num" id="countdown">--:--:--</span>
+          <div class="countdown-label" id="cdlabel">—</div>
+        </div>
+
+        <hr class="sep">
+        <div class="passfacts">
+          <div><div class="lab">Élév. max</div><span class="num v" id="f-maxel">—</span></div>
+          <div><div class="lab">Durée</div><span class="num v" id="f-dur">—</span></div>
+          <div><div class="lab">Az AOS → LOS</div><span class="num v" id="f-az">—</span></div>
+          <div><div class="lab">Qualité omni</div><span class="num v" id="f-qual">—</span></div>
+        </div>
+
+        <hr class="sep">
+        <div class="freqrow">
+          <div>
+            <div class="lab"><span class="ic" data-ic="ArrowUp"></span>Uplink · toi → sat</div>
+            <span class="num" id="txfreq">—</span>
+            <div class="doppler" id="txdop">—</div>
+            <div class="pl" id="ctcssval">—</div>
+          </div>
+          <div>
+            <div class="lab"><span class="ic" data-ic="ArrowDown"></span>Downlink · sat → toi</div>
+            <span class="num" id="rxfreq">—</span>
+            <div class="doppler" id="rxdop">—</div>
+            <div class="pl" id="modval">—</div>
+          </div>
+        </div>
+
+        <!-- le palier Doppler courant : c'est l'action du moment (méthode
+             FTM-500D), il ne peut pas vivre derrière un onglet pendant qu'il sert -->
+        <div class="memo" id="memo" hidden>
+          <span class="tagm" id="memo-tag">—</span>
+          <span class="when" id="memo-when">—</span>
+          <span class="hint" id="memo-hint"></span>
+          <button class="more" type="button" id="memo-more">Les mémoires</button>
+        </div>
+
+        <details id="det-polar">
+          <summary><span class="ic" data-ic="Route"></span>Trajectoire Az/El
+            <span class="meta" id="polar-meta"></span></summary>
+          <div class="body polarwrap">
+            <canvas id="polar" width="600" height="600" role="img"
+                    aria-label="Trajectoire du passage en azimut et élévation"></canvas>
+            <div class="cone-note">
+              <span class="ic" data-ic="TriangleWarning"></span>
+              <span class="prose" style="font-size:11.5px">Cercle pointillé = cône de silence de
+              l’antenne omni verticale. Au-delà de ~75° d’élévation, creux de signal possible au
+              passage au zénith.</span>
+            </div>
+          </div>
+        </details>
+
+        <details class="pushed">
+          <summary><span class="ic" data-ic="Book"></span>Note du catalogue
+            <span class="meta">catalogue AMSAT</span></summary>
+          <div class="body"><p class="prose" id="passnote"></p></div>
+        </details>
+      </div>
+
+      <div class="mapwrap">
+        <div class="maphead">
+          <h2 style="border:0;padding:0"><span class="ic" data-ic="Globe"></span>Où il est
+            <span class="meta" id="mapsat">—</span></h2>
+          <div class="legend">
+            <span><i style="background:var(--acc)"></i>Satellite</span>
+            <span><span class="ic" data-ic="Home"></span>Ma station</span>
+            <span><span class="ic" data-ic="Target"></span>Zone audible</span>
+            <span><span class="ic" data-ic="Moon"></span>Zone de nuit</span>
+            <span><span class="ic" data-ic="CloudSun"></span>Météo</span>
+          </div>
+        </div>
+        <div id="worldmap"></div>
+        <!-- Deux boutons, deux rôles. « Suivi » est un ÉTAT (aria-pressed) : il
+             centre sur le satellite et l'y garde. « Ma station » est un ACTE de
+             cadrage : il zoome sur la station, donc il coupe le suivi. Pas de
+             troisième bouton « focus satellite » : ce serait « Suivi » deux fois. -->
+        <div class="mapbtns">
+          <button class="mapbtn" type="button" id="btn-home"
+                  aria-label="Zoomer la carte sur ma station">
+            <span class="ic" data-ic="Home"></span><span class="lbl">Ma station</span></button>
+          <!-- pas d'aria-label ici : le libellé visible dit déjà l'action, et il
+               change avec l'état (« Suivi » / « Reprendre le suivi ») -->
+          <button class="mapbtn" type="button" id="btn-follow" aria-pressed="true">
+            <span class="ic" data-ic="Target"></span><span class="lbl">Suivi</span></button>
         </div>
       </div>
-      <div class="passnote" id="passnote"></div>
+
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="telem">
+      <div class="cell" id="c-dist"><div class="lab"><span class="ic" data-ic="Ruler"></span>Distance</div>
+        <span class="num" id="ro-dist">—</span></div>
+      <div class="cell"><div class="lab"><span class="ic" data-ic="Gauge"></span>Vitesse</div>
+        <span class="num" id="ro-speed">—</span></div>
+      <div class="cell"><div class="lab"><span class="ic" data-ic="ArrowUp"></span>Altitude</div>
+        <span class="num" id="ro-alt">—</span></div>
+      <div class="cell"><div class="lab"><span class="ic" data-ic="Globe"></span>Position sat</div>
+        <span class="num" id="ro-pos">—</span></div>
+      <div class="cell"><div class="lab"><span class="ic" data-ic="Compass"></span>Azimut / élév.</div>
+        <span class="num" id="ro-azel">—</span></div>
+      <!-- seule lecture qui peut porter l'accent, et seulement quand elle vaut
+           « Audible » : c'est la seule des six qui change ce qu'on fait -->
+      <div class="cell" id="c-vis"><div class="lab"><span class="ic" data-ic="Eye"></span>Visibilité</div>
+        <span class="num" id="ro-vis">—</span></div>
+    </div>
+  </section>
+
+  <section class="block framed">
+    <div class="tabs" role="tablist" aria-label="Sections secondaires">
+      <button type="button" role="tab" id="tb0" aria-controls="tp0" aria-selected="true">
+        <span class="ic" data-ic="Calendar"></span>Prochains passages</button>
+      <button type="button" role="tab" id="tb1" aria-controls="tp1" aria-selected="false">
+        <span class="ic" data-ic="Sliders"></span>Réglage du poste</button>
+      <button type="button" role="tab" id="tb2" aria-controls="tp2" aria-selected="false">
+        <span class="ic" data-ic="Satellite"></span>Radio de l’ISS</button>
+      <button type="button" role="tab" id="tb3" aria-controls="tp3" aria-selected="false">
+        <span class="ic" data-ic="Notebook"></span>Journal</button>
+      <button type="button" role="tab" id="tb4" aria-controls="tp4" aria-selected="false">
+        <span class="ic" data-ic="Radio"></span>Station</button>
     </div>
 
-    <div class="panel polarwrap">
-      <h2 style="align-self:flex-start;">Trajectoire Az/El</h2>
-      <canvas id="polar" width="600" height="600"></canvas>
-      <div class="cone-note"><span class="dot"></span> Zone pointillée = cône de silence de l'antenne omni verticale. Au-delà de ~75° d'élévation, creux de signal possible au passage au zénith.</div>
+    <div role="tabpanel" id="tp0" aria-labelledby="tb0">
+      <div class="block">
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Satellite</th><th>Mode</th><th>AOS</th>
+              <th class="num">Élév. max</th><th class="num">Durée</th>
+              <th class="num">Downlink</th><th>Qualité</th>
+            </tr></thead>
+            <tbody id="passtable"></tbody>
+          </table>
+        </div>
+        <span class="hint">Heure locale · clique une ligne pour la suivre.</span>
+      </div>
     </div>
-  </div>
 
-  <div class="panel isspanel">
-    <h2>État radio de l'ISS <span class="tag" id="isscheck">—</span></h2>
-    <div class="issgrid" id="issgrid"><div class="issmode">Chargement…</div></div>
-    <div class="isssrc">Source : <a href="https://www.ariss.org/current-status-of-iss-stations.html" target="_blank" rel="noopener">ARISS — Current status of ISS stations</a> · relevé automatiquement toutes les heures</div>
-  </div>
+    <div role="tabpanel" id="tp1" aria-labelledby="tb1" hidden>
+      <div class="block">
+        <h2 style="border:0;padding:0"><span class="ic" data-ic="Sliders"></span>Plan de tuning Doppler
+          <span class="meta" id="planhead">—</span></h2>
+        <div class="plangrid" id="plangrid"></div>
+        <hr class="sep">
+        <div class="planfoot">
+          <button type="button" id="btn-mem"><span class="ic" data-ic="Download"></span>Exporter pour CHIRP</button>
+          <span class="hint">Fichier CHIRP calculé pour <b>ce</b> passage depuis <b>ta</b> station :
+          l’heure de bascule est dans le commentaire de chaque canal. Les fichiers satellite qui
+          circulent sont les mêmes pour tout le monde et ne disent pas <i>quand</i> changer.
+          Le FTM-500D n’ayant pas de commande CAT, la bascule reste à la molette.</span>
+        </div>
+      </div>
+    </div>
 
-  <div class="panel planpanel">
-    <h2>Plan de tuning Doppler · FTM-500D
-      <span class="tag" id="planhead">—</span>
-    </h2>
-    <div class="plangrid" id="plangrid"></div>
-    <div class="planfoot">
-      <button class="btn" id="btn-mem">Exporter les mémoires (CSV)</button>
-      <span class="hint">Le FTM-500D n'a pas de commande CAT : ces 5 mémoires se sélectionnent à la molette aux horaires indiqués.</span>
+    <div role="tabpanel" id="tp2" aria-labelledby="tb2" hidden>
+      <div class="block">
+        <h2 style="border:0;padding:0"><span class="ic" data-ic="Satellite"></span>État radio de l’ISS
+          <span class="meta" id="isscheck">—</span></h2>
+        <div class="issgrid" id="issgrid"><div class="issmode">Chargement…</div></div>
+        <div class="isssrc">Source :
+          <a href="https://www.ariss.org/current-status-of-iss-stations.html" target="_blank" rel="noopener">ARISS
+          — Current status of ISS stations</a> · relevé automatiquement toutes les heures</div>
+      </div>
     </div>
-  </div>
 
-  <div class="panel listpanel">
-    <h2>Passages à venir <span class="tag">HEURE LOCALE · CLIQUE UNE LIGNE POUR LA SUIVRE</span></h2>
-    <div style="overflow-x:auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>Satellite</th><th>Mode</th><th>AOS</th>
-            <th class="num">Élév. max</th><th class="num">Durée</th><th>Downlink</th><th>Qualité</th>
-          </tr>
-        </thead>
-        <tbody id="passtable"></tbody>
-      </table>
+    <div role="tabpanel" id="tp3" aria-labelledby="tb3" hidden>
+      <div class="block">
+        <h2 style="border:0;padding:0"><span class="ic" data-ic="Notebook"></span>Journal de trafic
+          <span class="meta">export ADIF</span></h2>
+        <div class="qsoform">
+          <label class="field2"><span class="lab">Indicatif</span>
+            <input id="q-call" placeholder="F1ABC" autocomplete="off" autocapitalize="characters"></label>
+          <label class="field2"><span class="lab">Locator</span>
+            <input id="q-grid" placeholder="JN38" autocomplete="off" autocapitalize="characters"></label>
+          <label class="field2"><span class="lab">RST envoyé</span><input id="q-rsts" value="59"></label>
+          <label class="field2"><span class="lab">RST reçu</span><input id="q-rstr" value="59"></label>
+          <label class="field2"><span class="lab">Note</span>
+            <input id="q-note" placeholder="via AO-91" autocomplete="off"></label>
+          <button type="button" id="btn-qso"><span class="ic" data-ic="Save"></span>Enregistrer le QSO</button>
+          <a class="btn" href="/api/qso.adi"><span class="ic" data-ic="Download"></span>Télécharger l’ADIF</a>
+        </div>
+        <span class="hint" id="qsomsg"></span>
+      </div>
     </div>
-  </div>
 
-  <div class="panel qsopanel">
-    <h2>Journal de trafic <span class="tag">EXPORT ADIF</span></h2>
-    <div class="qsoform">
-      <input id="q-call" placeholder="Indicatif" autocomplete="off">
-      <input id="q-grid" placeholder="Locator" autocomplete="off">
-      <input id="q-rsts" placeholder="RST envoyé" value="59">
-      <input id="q-rstr" placeholder="RST reçu" value="59">
-      <input id="q-note" placeholder="Note" autocomplete="off">
-      <button class="btn" id="btn-qso">Enregistrer le QSO</button>
-      <a class="btn ghost" href="/api/qso.adi">Télécharger l'ADIF</a>
-      <span class="hint" id="qsomsg"></span>
+    <div role="tabpanel" id="tp4" aria-labelledby="tb4" hidden>
+      <div class="block">
+        <h2 style="border:0;padding:0"><span class="ic" data-ic="Radio"></span>Station
+          <span class="meta">matériel en service</span></h2>
+        <div class="gear">
+          <div class="gearcard">
+            <div class="gearicon"><span class="ic" data-ic="SignalStream"></span></div>
+            <div><div class="t">Antenne</div><div class="s" id="gear-ant">—</div></div>
+          </div>
+          <div class="gearcard">
+            <div class="gearicon"><span class="ic" data-ic="Radio"></span></div>
+            <div><div class="t">Transceiver</div><div class="s" id="gear-rig">—</div></div>
+          </div>
+          <div class="gearcard">
+            <div class="gearicon"><span class="ic" data-ic="Sliders"></span></div>
+            <div><div class="t">Interface</div><div class="s" id="gear-sc">—</div></div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="gear">
-    <div class="gearcard">
-      <div class="gearicon">📡</div>
-      <div><div class="t">Antenne</div><div class="s">Omnidirectionnelle fixe · 9 m sol<br>Pas de rotor — aucune orientation à faire</div></div>
-    </div>
-    <div class="gearcard">
-      <div class="gearicon">📻</div>
-      <div><div class="t">Transceiver</div><div class="s">Yaesu FTM-500D<br>Doppler à la molette (pas de CAT)</div></div>
-    </div>
-    <div class="gearcard">
-      <div class="gearicon">🎚️</div>
-      <div><div class="t">Interface</div><div class="s">Digirig Mobile<br>Audio + PTT — APRS, SSTV, télémétrie</div></div>
-    </div>
-  </div>
-
-  <footer>JB-SATRACK · station F4MAJ · TLE CelesTrak (maj horaire) · statut ISS ARISS · calcul SGP4 satellite.js<br>© 2026 F4MAJ &amp; Claude IA (Anthropic) — création conjointe</footer>
+  <footer>
+    JB-SATRACK · station F4MAJ · TLE CelesTrak (maj horaire) · statut ISS ARISS · calcul SGP4 satellite.js<br>
+    © 2026 F4MAJ &amp; Claude IA (Anthropic) — création conjointe
+  </footer>
 </div>
 
 <div class="modal-veil" id="setup-veil" hidden>
-  <div class="modal">
-    <h2>Configurer ta station</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <h2 id="setup-title">Configurer ta station</h2>
     <p class="modal-intro">Ton indicatif et ton locator suffisent — la position se calcule toute seule.</p>
-    <label class="field">
-      <span>Indicatif</span>
-      <input id="s-call" placeholder="ex. F4MAJ" autocomplete="off" autocapitalize="characters">
-    </label>
-    <label class="field">
-      <span>Locator (grid square)</span>
-      <input id="s-loc" placeholder="ex. JN37QS" autocomplete="off" autocapitalize="characters" maxlength="8">
-    </label>
-    <label class="field">
-      <span>Ville (optionnel)</span>
-      <input id="s-city" placeholder="ex. Illzach" autocomplete="off">
-    </label>
-    <label class="field">
-      <span>Fuseau horaire</span>
-      <input id="s-tz" placeholder="ex. Europe/Paris" autocomplete="off" value="Europe/Paris">
-    </label>
+    <label class="field"><span>Indicatif</span>
+      <input id="s-call" placeholder="ex. F4MAJ" autocomplete="off" autocapitalize="characters"></label>
+    <label class="field"><span>Locator (grid square)</span>
+      <input id="s-loc" placeholder="ex. JN37QS" autocomplete="off" autocapitalize="characters" maxlength="8"></label>
+    <label class="field"><span>Ville (optionnel)</span>
+      <input id="s-city" placeholder="ex. Illzach" autocomplete="off"></label>
+    <label class="field"><span>Fuseau horaire</span>
+      <input id="s-tz" placeholder="ex. Europe/Paris" autocomplete="off" value="Europe/Paris"></label>
     <div class="modal-preview" id="s-preview"></div>
-    <div class="modal-error" id="s-error"></div>
+    <div class="modal-error" id="s-error" role="alert"></div>
     <div class="modal-actions">
-      <button class="btn ghost" id="s-cancel">Annuler</button>
-      <button class="btn" id="s-save">Enregistrer</button>
+      <button type="button" id="s-cancel">Annuler</button>
+      <button type="button" id="s-save"><span class="ic" data-ic="Save"></span>Enregistrer</button>
     </div>
-    <p class="modal-hint">Antenne, radio et autres réglages avancés : modifiables dans <code>data/station.json</code>.</p>
+    <p class="modal-hint">Antenne, radio et autres réglages avancés : modifiables dans
+      <code>data/station.json</code>.</p>
   </div>
 </div>
 
 <script src="/vendor/satellite.min.js"></script>
 <script src="/vendor/leaflet.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
-<script src="starfield.js"></script>
 </body>
 </html>

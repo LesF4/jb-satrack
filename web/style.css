@@ -1,320 +1,694 @@
-/* ---- Tokens (dark-committed HUD — deliberate single-world design) ---- */
-  :root{
-    --bg-0:#060a14;
-    --bg-1:#0b1220;
-    --bg-2:#111a2c;
-    --panel:#0e1626;
-    --panel-line:#1e2c46;
-    --ink-0:#e8f0f5;
-    --ink-1:#9db0c6;
-    --ink-2:#5b7085;
-    --phosphor:#4be3c7;
-    --phosphor-dim:#245a52;
-    --amber:#ffb454;
-    --amber-dim:#5a3f1c;
-    --danger:#ff6b6b;
-    --good:#63e6a0;
-    --warn:#ffcc66;
-    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
-    --disp: 'Chakra Petch', var(--mono);
-    --body: 'IBM Plex Sans', system-ui, sans-serif;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg-0);
-    color:var(--ink-0);
-    font-family:var(--body);
-    -webkit-font-smoothing:antialiased;
-    min-height:100vh;
-    overflow-x:hidden;
-  }
-  @media (prefers-reduced-motion: reduce){
-    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
-  }
+/* =============================================================================
+   JB-SATRACK — système de design
+   Direction « Sobre » : gris Tailwind neutres, ambre rationné, surfaces plates
+   tenues par un anneau d'un pixel. Deux thèmes, sombre par défaut.
 
-  /* ---- background field ---- */
-  #field{position:fixed; inset:0; z-index:0; display:block;}
-  .veil{
-    position:fixed; inset:0; z-index:1; pointer-events:none;
-    background:
-      radial-gradient(ellipse 900px 500px at 18% -8%, rgba(75,227,199,0.10), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(255,180,84,0.06), transparent 55%),
-      linear-gradient(180deg, rgba(6,10,20,0) 0%, rgba(6,10,20,0.55) 78%, rgba(6,10,20,0.92) 100%);
-  }
+   Les dix règles du socle (voir prototypes/DECISIONS.md) :
+    1. Le sans dit les mots, le mono dit les nombres. Jamais l'inverse.
+    2. L'accent se mérite : il ne marque que ce qui se passe MAINTENANT.
+    3. Une couleur de marque n'est jamais un état.
+    4. Un seul niveau de contenant : un groupe se sépare par du vide et un filet.
+    5. Rythme symétrique par construction : un bloc = une colonne flex, un gap ;
+       les séparateurs sont des éléments, donc l'espace est égal des deux côtés.
+    6. Une seule famille de formes : ce qui se clique est une pilule, une surface
+       est un rectangle arrondi.
+    7. Le survol ne remplace jamais le fond d'un élément déjà marqué.
+    8. Titres de section en casse de phrase.
+    9. Une phrase d'orientation en tête, écrite comme on parle.
+   10. L'accessoire s'ouvre, il ne s'empile pas.
+   11. Un seul rayon est décidé, les autres se calculent.
 
-  .wrap{position:relative; z-index:2; max-width:1900px; margin:0 auto; padding:22px clamp(16px, 3vw, 48px) 60px;}
+   Contrastes mesurés (WCAG 2.1) :
+     sombre — i0 17,2:1 · i1 12,1:1 · i2 6,9:1 · accent 8,4:1
+     clair  — i0 17,9:1 · i1 10,4:1 · i2 7,8:1 · accent 5,0:1
+   Le palier 500 des rampes Tailwind est interdit pour du texte : 3,8:1.
+   Surface posée sur le fond de page (--surf-ground) : clair 1,36:1 contre --bg,
+   sombre 1,31:1 — le même écart perçu dans les deux thèmes.
+   ============================================================================= */
 
-  /* ---- header ---- */
-  header{
-    display:flex; align-items:center; justify-content:space-between; gap:16px;
-    padding:14px 18px; border:1px solid var(--panel-line); border-radius:10px;
-    background:linear-gradient(180deg, rgba(17,26,44,0.75), rgba(14,22,38,0.55));
-    backdrop-filter:blur(6px);
-    flex-wrap:wrap;
-  }
-  .station{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
-  .callsign{
-    font-family:var(--disp); font-size:22px; letter-spacing:0.06em; color:var(--phosphor);
-    text-shadow:0 0 18px rgba(75,227,199,0.45);
-  }
-  .locator{font-family:var(--mono); color:var(--ink-1); font-size:13px;}
-  .locator b{color:var(--ink-0); font-weight:600;}
-  .badges{display:flex; gap:8px; flex-wrap:wrap;}
-  .badge{
-    font-family:var(--mono); font-size:11px; letter-spacing:0.03em; color:var(--ink-1);
-    border:1px solid var(--panel-line); border-radius:6px; padding:4px 8px;
-    background:rgba(255,255,255,0.02);
-  }
-  .clockbox{text-align:right;}
-  .clock{font-family:var(--mono); font-size:26px; color:var(--ink-0); font-variant-numeric:tabular-nums; letter-spacing:0.02em;}
-  .clocklabel{font-family:var(--mono); font-size:10px; color:var(--ink-2); letter-spacing:0.15em; text-transform:uppercase;}
+:root{
+  --sans:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
 
-  .previewtag{
-    margin-top:12px; display:flex; align-items:center; gap:8px;
-    font-family:var(--mono); font-size:11px; color:var(--amber); letter-spacing:0.04em;
-    border:1px dashed var(--amber-dim); border-radius:8px; padding:8px 12px;
-    background:rgba(255,180,84,0.04);
-  }
-  .previewtag .dot{width:6px; height:6px; border-radius:50%; background:var(--amber); box-shadow:0 0 8px var(--amber); flex:none;}
+  /* espace — le padding interne se resserre pendant que l'écart s'ouvre */
+  --pad:.8; --gap:1.4;
+  --p1:calc(4px*var(--pad));  --p2:calc(8px*var(--pad));  --p3:calc(12px*var(--pad));
+  --p4:calc(16px*var(--pad)); --p5:calc(22px*var(--pad)); --p6:calc(30px*var(--pad));
+  --g:calc(14px*var(--gap)); --g2:calc(22px*var(--gap));
 
-  /* ---- world map ---- */
-  .mappanel{margin-top:14px; padding:0; overflow:hidden; position:relative;
-    border:1px solid var(--panel-line); border-radius:12px; background:#070c17;}
-  /* la carte déborde du conteneur de lecture sur grand écran : c'est l'élément visuel, pas du texte */
-  @media (min-width:1300px){
-    .mappanel{width:94vw; max-width:2200px; margin-left:50%; transform:translateX(-50%);}
-  }
-  .maphead{display:flex; justify-content:space-between; align-items:center; gap:12px;
-    padding:12px 16px; border-bottom:1px solid var(--panel-line); flex-wrap:wrap;
-    background:linear-gradient(180deg, rgba(17,26,44,0.7), rgba(11,18,32,0.4));}
-  .maphead .t{font-family:var(--disp); font-size:13px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-1);}
-  .maphead .legend{display:flex; gap:14px; flex-wrap:wrap; font-family:var(--mono); font-size:10px; color:var(--ink-2); letter-spacing:0.06em;}
-  .maphead .legend i{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle;}
-  #worldmap{display:block; width:100%; height:min(74vh, 860px); min-height:380px; background:#070c17;}
-  @media (max-width:820px){ #worldmap{height:56vh; min-height:320px;} }
+  /* Formes — un seul rayon décidé, les autres en découlent.
+     Règle 11, AMENDÉE : « intérieur = extérieur − retrait » vaut tant que
+     l'enfant TOUCHE le coin du parent, c'est-à-dire tant que le retrait reste
+     inférieur au rayon extérieur. Au-delà, l'enfant est trop loin du coin pour
+     que les deux arcs se voient ensemble : il choisit alors son rayon pour
+     lui-même, et la dérivation ne dit plus rien. C'est le cas ici — le retrait
+     vaut --p5 (17,6 px) contre 10 px de rayon extérieur, la soustraction est
+     négative et le plancher de 2 px s'appliquait, ce qui rendait la carte
+     carrée. On ne casse pas la règle, on la borne. Ne pas « corriger » --r-media
+     en le rebranchant sur --r-field : ce serait refaire l'image posée. */
+  --r-surface:10px;
+  --r-field:max(2px, calc(var(--r-surface) - var(--p5)));
+  --r-control:999px;
+  /* grandes surfaces en retrait (carte, et toute future image pleine largeur) */
+  --r-media:14px;
 
-  /* ---- thème sombre pour les contrôles Leaflet ---- */
-  .leaflet-container{background:#070c17; font-family:var(--mono);}
-  .leaflet-control-zoom a{
-    background:rgba(14,22,38,0.9) !important; color:var(--ink-0) !important;
-    border:1px solid var(--panel-line) !important;
-  }
-  .leaflet-control-zoom a:hover{background:rgba(75,227,199,0.15) !important;}
-  .leaflet-control-attribution{
-    background:rgba(7,12,23,0.75) !important; color:var(--ink-2) !important;
-    font-size:10px !important;
-  }
-  .leaflet-control-attribution a{color:var(--ink-1) !important;}
-  .leaflet-popup-content-wrapper{
-    background:var(--panel) !important; color:var(--ink-0) !important;
-    border:1px solid var(--panel-line) !important; border-radius:8px !important;
-    font-family:var(--mono) !important; font-size:12px !important;
-  }
-  .leaflet-popup-tip{background:var(--panel) !important;}
-  .leaflet-popup-close-button{color:var(--ink-2) !important;}
-  .leaflet-div-icon{background:transparent !important; border:none !important;}
-  .wx-icon{font-size:20px; line-height:1; text-align:center; opacity:0.68;
-    filter:drop-shadow(0 0 4px rgba(0,0,0,0.9)); pointer-events:auto;}
-  .wx-icon .t{font-family:var(--mono); font-size:10px; color:var(--ink-0); text-shadow:0 0 4px #000, 0 0 4px #000;}
-  .sat-icon{display:flex; align-items:center; gap:6px; white-space:nowrap;
-    font-family:var(--mono); font-weight:600; font-size:13px; text-shadow:0 0 6px rgba(0,0,0,0.9);}
-  .sat-icon .dot{width:10px; height:10px; border-radius:50%; flex:none;}
-  .sat-icon .house{font-size:20px; line-height:1; filter:drop-shadow(0 0 5px rgba(255,180,84,0.9));}
-  .sat-icon.sat .dot{background:#4be3c7; box-shadow:0 0 12px #4be3c7;}
-  .sat-icon.station{color:rgba(255,180,84,0.9);}
-  .sat-icon.sat{color:rgba(232,240,245,0.95);}
-  .readouts{display:grid; grid-template-columns:repeat(6,1fr); gap:0;
-    border-top:1px solid var(--panel-line);}
-  @media (max-width:820px){ .readouts{grid-template-columns:repeat(3,1fr);} }
-  .ro{padding:10px 14px; border-right:1px solid rgba(30,44,70,0.7);}
-  .ro:last-child{border-right:none;}
-  .ro .k{font-family:var(--mono); font-size:9.5px; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.11em;}
-  .ro .v{font-family:var(--mono); font-size:17px; color:var(--ink-0); margin-top:3px; font-variant-numeric:tabular-nums;}
-  .ro .v small{font-size:11px; color:var(--ink-2); margin-left:3px;}
-  .ro .v.live{color:var(--phosphor);}
+  /* ---- échelle de profondeur, nommée une fois pour toutes -------------------
+     Leaflet pose ses propres valeurs : panneaux 200→700, .leaflet-control 800,
+     .leaflet-top/.leaflet-bottom 1000. On les range donc SOUS un palier à nous
+     plutôt que de surenchérir au cas par cas. Quatre paliers, un rôle chacun :
 
-  /* ---- doppler plan ---- */
-  .planpanel{margin-top:14px;}
-  .plangrid{display:grid; grid-template-columns:repeat(5,1fr); gap:8px;}
-  @media (max-width:820px){ .plangrid{grid-template-columns:repeat(2,1fr);} }
-  .step{border:1px solid var(--panel-line); border-radius:8px; padding:10px 12px; background:rgba(255,255,255,0.015);}
-  .step.now{border-color:var(--phosphor-dim); background:rgba(75,227,199,0.07);}
-  .step .when{font-family:var(--mono); font-size:10px; color:var(--ink-2); letter-spacing:0.08em; text-transform:uppercase;}
-  .step .rx{font-family:var(--mono); font-size:15px; color:var(--ink-0); margin-top:5px; font-variant-numeric:tabular-nums;}
-  .step .tx{font-family:var(--mono); font-size:12px; color:var(--ink-1); margin-top:2px; font-variant-numeric:tabular-nums;}
-  .step.now .rx{color:var(--phosphor);}
+       --z-map-control  contrôles posés DANS la carte (zoom, attribution) ;
+                        recouvre les tracés et les repères, rien de plus.
+       --z-map-btn      nos boutons de cadrage : au-dessus des contrôles
+                        Leaflet, parce qu'ils se touchent dans le même coin.
+       --z-modal        voile + boîte de dialogue. Au-dessus de TOUT ce que
+                        Leaflet pose, panneaux à 1000 compris : une modale qui
+                        laisse passer un bouton de carte n'est pas une modale.
+       --z-toast        annonce d'un passage. Le seul palier au-dessus de la
+                        modale, et pour une raison précise : une annonce est
+                        DATÉE, une modale ne l'est pas. On ne rate pas un AOS
+                        parce qu'on avait les réglages ouverts.
 
-  /* ---- hero: next pass ---- */
-  .hero{
-    margin-top:16px; display:grid; grid-template-columns:1.15fr 1fr; gap:14px;
-  }
-  @media (max-width:880px){ .hero{grid-template-columns:1fr;} }
+     Aucune autre valeur de z-index dans ce fichier. Une cinquième couche se
+     déclare ici, elle ne s'improvise pas sur place. */
+  --z-map-control:800;
+  --z-map-btn:820;
+  --z-modal:2000;
+  --z-toast:2100;
 
-  .panel{
-    border:1px solid var(--panel-line); border-radius:12px;
-    background:linear-gradient(180deg, rgba(17,26,44,0.7), rgba(11,18,32,0.72));
-    backdrop-filter:blur(6px);
-    padding:18px 20px;
-  }
-  .panel h2{
-    margin:0 0 14px; font-family:var(--disp); font-size:13px; letter-spacing:0.16em;
-    text-transform:uppercase; color:var(--ink-1); font-weight:600;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .panel h2 .tag{font-size:10px; color:var(--ink-2); letter-spacing:0.08em;}
-
-  .nextsat{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
-  .nextsat .name{font-family:var(--disp); font-size:30px; color:var(--ink-0); letter-spacing:0.02em;}
-  .modepill{
-    font-family:var(--mono); font-size:11px; padding:3px 9px; border-radius:20px;
-    border:1px solid var(--phosphor-dim); color:var(--phosphor); letter-spacing:0.04em;
-  }
-  .modepill.linear{border-color:#4a3f7a; color:#b7a6ff;}
-
-  .countdown{
-    font-family:var(--mono); font-size:52px; color:var(--phosphor); letter-spacing:0.02em;
-    text-shadow:0 0 26px rgba(75,227,199,0.35);
-    font-variant-numeric:tabular-nums; margin:10px 0 2px;
-  }
-  .countdown-label{font-family:var(--mono); font-size:11px; color:var(--ink-2); letter-spacing:0.15em; text-transform:uppercase;}
-
-  .passfacts{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:18px;}
-  @media (max-width:560px){ .passfacts{grid-template-columns:repeat(2,1fr);} }
-  .fact{border-top:1px solid var(--panel-line); padding-top:8px;}
-  .fact .k{font-family:var(--mono); font-size:10px; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.1em;}
-  .fact .v{font-family:var(--mono); font-size:16px; color:var(--ink-0); margin-top:3px; font-variant-numeric:tabular-nums;}
-  .fact .v.good{color:var(--good);}
-  .fact .v.warn{color:var(--warn);}
-
-  .freqrow{
-    margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;
-  }
-  .freqbox{
-    border:1px solid var(--panel-line); border-radius:8px; padding:10px 12px;
-    background:rgba(255,255,255,0.015);
-  }
-  .freqbox .k{font-family:var(--mono); font-size:10px; color:var(--ink-2); letter-spacing:0.1em; text-transform:uppercase;}
-  .freqbox .v{font-family:var(--mono); font-size:19px; color:var(--ink-0); margin-top:4px; font-variant-numeric:tabular-nums;}
-  .freqbox .doppler{font-family:var(--mono); font-size:11px; margin-top:3px;}
-  .doppler.up{color:#ff9a8a;}
-  .doppler.down{color:#8ab4ff;}
-  .pl{color:var(--ink-2); font-size:11px; font-family:var(--mono); margin-top:6px;}
-
-  /* ---- polar plot ---- */
-  .polarwrap{display:flex; flex-direction:column; align-items:center;}
-  svg.polar{width:100%; max-width:340px; height:auto;}
-  .polar text{font-family:var(--mono); fill:var(--ink-2);}
-  .cone-note{
-    margin-top:10px; font-family:var(--mono); font-size:11px; color:var(--amber);
-    display:flex; gap:8px; align-items:flex-start; text-align:left;
-    border-top:1px solid var(--panel-line); padding-top:10px; width:100%;
-  }
-  .cone-note .dot{width:6px; height:6px; margin-top:5px; border-radius:50%; background:var(--amber); flex:none; box-shadow:0 0 6px var(--amber);}
-
-  /* ---- pass list ---- */
-  .listpanel{margin-top:14px;}
-  table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13px;}
-  thead th{
-    text-align:left; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-2);
-    padding:6px 10px; border-bottom:1px solid var(--panel-line); font-weight:600;
-  }
-  tbody td{padding:10px 10px; border-bottom:1px solid rgba(30,44,70,0.6); color:var(--ink-0); vertical-align:middle;}
-  tbody tr:hover{background:rgba(75,227,199,0.035);}
-  tbody tr:last-child td{border-bottom:none;}
-  .satcell{display:flex; align-items:center; gap:8px;}
-  .satdot{width:8px; height:8px; border-radius:50%; flex:none;}
-  .q{
-    display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:3px 8px; border-radius:20px;
-    border:1px solid var(--panel-line);
-  }
-  .q.good{color:var(--good); border-color:#1f4d38;}
-  .q.ok{color:var(--warn); border-color:#4d3f1f;}
-  .q.poor{color:var(--ink-2); border-color:var(--panel-line);}
-  .num{font-variant-numeric:tabular-nums; text-align:right;}
-  th.num{text-align:right;}
-
-  /* ---- gear strip ---- */
-  .gear{
-    margin-top:14px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
-  }
-  @media (max-width:760px){ .gear{grid-template-columns:1fr;} }
-  .gearcard{display:flex; gap:12px; align-items:flex-start;}
-  .gearicon{
-    width:34px; height:34px; border-radius:8px; border:1px solid var(--panel-line);
-    display:flex; align-items:center; justify-content:center; flex:none; color:var(--phosphor);
-    background:rgba(75,227,199,0.05);
-  }
-  .gearcard .t{font-family:var(--body); font-size:13px; color:var(--ink-0); font-weight:600;}
-  .gearcard .s{font-family:var(--mono); font-size:11px; color:var(--ink-2); margin-top:2px;}
-
-  footer{
-    margin-top:26px; text-align:center; font-family:var(--mono); font-size:11px; color:var(--ink-2);
-    letter-spacing:0.04em;
-  }
-  footer a{color:var(--ink-1);}
-
-/* ---------- ajouts appli réelle ---------- */
-.btn{font-family:var(--mono); font-size:11px; letter-spacing:0.04em; color:var(--phosphor);
-  background:rgba(75,227,199,0.07); border:1px solid var(--phosphor-dim); border-radius:6px;
-  padding:5px 10px; cursor:pointer; text-decoration:none; display:inline-block;}
-.btn:hover{background:rgba(75,227,199,0.16);}
-.btn:focus-visible{outline:2px solid var(--phosphor); outline-offset:2px;}
-.btn.ghost{color:var(--ink-1); border-color:var(--panel-line); background:transparent;}
-.tlestat.ok{color:var(--good); border-color:#1f4d38;}
-.tlestat.warn{color:var(--warn); border-color:#4d3f1f;}
-.tlestat.bad{color:var(--danger); border-color:#5a2020;}
-.previewtag.bad{color:var(--danger); border-color:#5a2020; background:rgba(255,107,107,0.05);}
-.previewtag #passcount{margin-left:auto; color:var(--ink-2);}
-.passnote{margin-top:12px; font-family:var(--mono); font-size:11px; color:var(--ink-2); line-height:1.5;}
-#polar{width:100%; max-width:340px; height:auto;}
-#countdown.live{color:var(--amber); text-shadow:0 0 26px rgba(255,180,84,0.4);}
-tbody tr{cursor:pointer;}
-tbody tr.sel{background:rgba(75,227,199,0.09); box-shadow:inset 2px 0 0 var(--phosphor);}
-td .loc{color:var(--ink-2); font-size:11px;}
-.isspanel .issgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
-@media (max-width:860px){ .isspanel .issgrid{grid-template-columns:repeat(2,1fr);} }
-.issmode{border:1px solid var(--panel-line); border-radius:8px; padding:12px; background:rgba(255,255,255,0.015);}
-.issmode .lab{font-family:var(--body); font-size:12.5px; color:var(--ink-0); font-weight:600;}
-.issmode .fq{font-family:var(--mono); font-size:15px; color:var(--ink-0); margin-top:6px; font-variant-numeric:tabular-nums;}
-.issmode .ex{font-family:var(--mono); font-size:10.5px; color:var(--ink-2); margin-top:6px; line-height:1.5;}
-.statepill{display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:20px;
-  border:1px solid var(--panel-line); margin-bottom:8px; letter-spacing:0.05em;}
-.statepill.active{color:var(--good); border-color:#1f4d38; background:rgba(99,230,160,0.08);}
-.statepill.off{color:var(--danger); border-color:#5a2020; background:rgba(255,107,107,0.06);}
-.statepill.scheduled{color:var(--warn); border-color:#4d3f1f; background:rgba(255,204,102,0.07);}
-.statepill.idle,.statepill.unknown{color:var(--ink-2);}
-.isssrc{margin-top:12px; font-family:var(--mono); font-size:10.5px; color:var(--ink-2);}
-.isssrc a{color:var(--ink-1);}
-.planfoot{margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
-.hint{font-family:var(--mono); font-size:10.5px; color:var(--ink-2);}
-.qsoform{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
-.qsoform input{font-family:var(--mono); font-size:12px; color:var(--ink-0); background:rgba(255,255,255,0.03);
-  border:1px solid var(--panel-line); border-radius:6px; padding:7px 10px; width:130px;}
-.qsoform input:focus{outline:none; border-color:var(--phosphor-dim); background:rgba(75,227,199,0.05);}
-
-/* ---- modale de configuration station ---- */
-.modal-veil{
-  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
-  background:rgba(4,8,16,0.88); padding:20px;
+  /* le noir absolu. Pas une couleur de la palette : le seul usage autorisé est
+     d'ASSOMBRIR un aplat sans toucher à sa teinte, dans les deux thèmes à la
+     fois — ce qu'aucun des jetons d'encre ne sait faire, --i0 valant blanc en
+     sombre et presque noir en clair. */
+  --shade:oklch(0% 0 0);
 }
+
+/* ---- thème sombre (défaut) ---- */
+:root,[data-theme="dark"]{
+  --bg:oklch(14.5% 0 0);          /* neutral-950 */
+  --surf:oklch(20.5% 0 0);        /* neutral-900 */
+  --surf-2:oklch(26.9% 0 0);      /* neutral-800 */
+  --line:oklch(26.9% 0 0);        /* neutral-800 */
+  --i0:oklch(98.5% 0 0);          /* neutral-50  — données, titres */
+  --i1:oklch(87% 0 0);            /* neutral-300 — prose */
+  --i2:oklch(70.8% 0 0);          /* neutral-400 — micro-étiquettes */
+  --acc:oklch(76.9% .188 70.08);  /* amber-500   — « maintenant », rien d'autre */
+  --on-acc:oklch(14.5% 0 0);
+  --good:oklch(76.5% .177 163.223);   /* emerald-400 */
+  --warn:oklch(82.8% .189 84.429);    /* amber-400 */
+  --bad:oklch(70.4% .191 22.216);     /* red-400 */
+  --map-void:oklch(18% 0 0);
+  --map-filter:saturate(0) contrast(1.15) brightness(.68) sepia(.4) hue-rotate(-12deg);
+  --marker-ink:#fff; --marker-halo:#000;
+  /* --surf-ground : l'aplat de ce qui est posé À MÊME LE FOND DE PAGE — boutons
+     d'en-tête, puces. Sur du noir --surf-2 s'en détache déjà (1,31:1), le jeton
+     vaut donc exactement --surf-2 et rien ne bouge ici. */
+  --surf-ground:oklch(26.9% 0 0);   /* = --surf-2 */
+  color-scheme:dark;
+}
+/* ---- thème clair — les rôles se permutent le long de la rampe, et l'accent
+        remonte : l'ambre-500 ne fait que 2,15:1 sur blanc, l'ambre-700 5,05:1 ---- */
+[data-theme="light"]{
+  --bg:oklch(97% 0 0); --surf:oklch(100% 0 0); --surf-2:oklch(96% 0 0);
+  --line:oklch(0% 0 0 / .10);
+  --i0:oklch(20.5% 0 0);          /* neutral-900 */
+  --i1:oklch(37.1% 0 0);          /* neutral-700 */
+  --i2:oklch(43.9% 0 0);          /* neutral-600 */
+  --acc:oklch(55.5% .163 48.998); /* amber-700 */
+  --on-acc:oklch(100% 0 0);
+  --good:oklch(59.6% .145 163.225);   /* emerald-600 */
+  --warn:oklch(55.5% .163 48.998);    /* amber-700 */
+  --bad:oklch(57.7% .245 27.325);     /* red-600 */
+  --map-void:oklch(92% 0 0);
+  --map-filter:saturate(.3) contrast(1.02) brightness(1.04) sepia(.25);
+  --marker-ink:oklch(15% 0 0); --marker-halo:#fff;
+  /* --surf-ground — c'est ICI que le thème clair se casse : --surf-2 (96 %)
+     contre --bg (97 %) fait 1,03:1, un point de clarté. Un bouton d'en-tête n'a
+     donc aucune forme au repos. On descend l'APLAT plutôt que d'ajouter un bord :
+     neutral-300 contre le fond de page fait 1,36:1, soit l'écart que le thème
+     sombre obtient déjà (1,31:1) et qui s'y voit sans effort.
+     Portée volontairement étroite : ce qui est posé sur une carte blanche
+     (boutons des blocs, étiquette de transpondeur) garde --surf-2. */
+  --surf-ground:oklch(87% 0 0);   /* neutral-300 */
+  color-scheme:light;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0; padding:0;}
+body{
+  background:var(--bg); color:var(--i0); font-family:var(--sans); font-synthesis:none;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  min-height:100vh; padding:var(--g) clamp(12px,2.4vw,34px) calc(var(--g2) * 3);
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+}
+.page{max-width:1560px; margin:0 auto; display:flex; flex-direction:column; gap:var(--g2);}
+
+/* règle 5 — le séparateur est un élément, l'espace est donc égal des deux côtés */
+.block{display:flex; flex-direction:column; gap:var(--p5);}
+.sep{border:0; border-top:1px solid var(--line); margin:0; height:0; width:100%;}
+.framed{background:var(--surf); box-shadow:0 0 0 1px var(--line);
+  border-radius:var(--r-surface); padding:var(--p5); overflow:hidden;}
+
+/* ---------------------------------------------------------- typographie ---- */
+h2{margin:0; font-size:14px; font-weight:600; letter-spacing:-.01em; color:var(--i0);
+  display:flex; align-items:center; gap:var(--p2);
+  padding-bottom:var(--p3); border-bottom:1px solid var(--line);}
+.framed > h2{border-bottom:0; padding-bottom:0;}
+h2 .ic{font-size:15px; color:var(--i2);}
+h2 .meta{margin-left:auto; font-weight:400;}
+.lab{font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--i2); display:flex; align-items:center; gap:6px;}
+.lab .ic{font-size:12px;}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--i0);}
+.prose{font-size:13px; line-height:1.65; color:var(--i1); max-width:64ch; text-wrap:pretty; margin:0;}
+.meta{font-size:11.5px; color:var(--i2); letter-spacing:0;}
+
+/* règle 9 — la phrase d'orientation, en français, écrite comme on parle ------ */
+.orient{display:flex; align-items:flex-start; gap:var(--p4); padding:var(--p4) var(--p5);
+  background:var(--surf); border-radius:var(--r-surface); box-shadow:0 0 0 1px var(--line);}
+.orient .badge{width:34px; height:34px; flex:none; border-radius:var(--r-control);
+  display:flex; align-items:center; justify-content:center; background:var(--acc); color:var(--on-acc);}
+.orient .badge .ic{font-size:17px;}
+.orient.calm .badge{background:var(--surf-2); color:var(--i1);}
+.orient .txt{display:flex; flex-direction:column; gap:4px; min-width:0;}
+.orient .head{max-width:60ch; font-size:16px; font-weight:600; letter-spacing:-.015em;
+  line-height:1.35; text-wrap:balance;}
+.orient .head b{color:var(--acc); font-weight:600;}
+.orient.calm .head b{color:var(--i0);}
+.orient .sub{max-width:84ch; font-size:12.5px; color:var(--i1); line-height:1.55; text-wrap:pretty;}
+.orient .sub .num{font-size:12.5px;}
+
+/* règle 6 — une seule famille de formes ------------------------------------- */
+button,.btn{font-family:var(--sans); font-size:12px; font-weight:500; color:var(--i0);
+  display:inline-flex; align-items:center; gap:7px; white-space:nowrap; text-decoration:none;
+  background:var(--surf-2); border:0; border-radius:var(--r-control); padding:8px 15px;
+  cursor:pointer; touch-action:manipulation;
+  transition-property:background-color,color,transform; transition-duration:150ms;
+  transition-timing-function:ease-out;}
+/* Ce qui s'actionne ne se sélectionne pas. Ouvrir puis refermer un dépliant, ou
+   cliquer deux fois sur un bouton, surlignait son libellé en bleu : le geste est
+   une commande, pas une lecture. Les lignes du tableau, elles, restent
+   sélectionnables — ce sont des données, elles se copient. */
+button,.btn,summary{-webkit-user-select:none; user-select:none;}
+
+button .ic,.btn .ic{font-size:14px; color:var(--i2);}
+
+/* Ce qui est posé à même le fond de page a besoin d'un aplat plus foncé que ce
+   qui est posé sur une carte blanche — même encre, deux fonds, deux réponses.
+   On redéfinit le JETON sur ces éléments au lieu d'écrire une règle plus
+   spécifique : le survol (--hover), l'état pressé et l'état désactivé s'en
+   déduisent sans une ligne de plus, et aucune spécificité ne vient battre les
+   règles d'état existantes. Règle 7 — un survol se dérive, il ne se choisit pas. */
+header .acts button,.chip{
+  --surf-2:var(--surf-ground);
+  --hover:color-mix(in oklch, var(--surf-2) 86%, var(--i0));}
+button:active,.btn:active{transform:scale(.96);}
+button:focus-visible,.btn:focus-visible{outline:2px solid var(--i0); outline-offset:2px;}
+button[aria-pressed="true"]{background:var(--acc); color:var(--on-acc);}
+button[aria-pressed="true"] .ic{color:var(--on-acc);}
+@media (pointer:coarse){ button,.btn{min-height:44px;} }
+.chip{font-size:11.5px; color:var(--i1); background:var(--surf-2); border-radius:var(--r-control);
+  padding:5px 12px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+.chip .ic{font-size:13px; color:var(--i2);}
+.chip.ok{color:var(--good);} .chip.warn{color:var(--warn);} .chip.bad{color:var(--bad);}
+/* ---- ICÔNE D'ÉTAT CONTRE ICÔNE D'ÉTIQUETTE -------------------------------
+   Une icône qui accompagne un ÉTAT prend la couleur de cet état ; une icône qui
+   ne fait qu'ÉTIQUETER reste neutre (--i2). D'où deux traitements, et un seul :
+   currentColor. Recopier --good / --warn / --bad ferait trois règles à tenir
+   en phase avec les trois classes d'état — une seule suffit, et elle marche
+   pour tout état ajouté plus tard.
+   Restent neutres, et il ne faut pas y toucher : .lab .ic, h2 .ic, .legend .ic,
+   button .ic, .chip .ic sans classe d'état — elles étiquettent, elles ne
+   disent rien. */
+:is(.chip.ok, .chip.warn, .chip.bad) .ic{color:inherit;}
+
+/* ------------------------------------------------------------- en-tête ----- */
+header{display:flex; align-items:center; gap:var(--p4); flex-wrap:wrap;}
+.ident{display:flex; align-items:baseline; gap:var(--p2);}
+.callsign{font-family:var(--mono); font-size:18px; font-weight:600; letter-spacing:-.02em;}
+.ident .meta b{font-family:var(--mono); color:var(--i1); font-weight:500;}
+header .chips{display:flex; gap:var(--p1); flex-wrap:wrap;}
+header .acts{display:flex; gap:var(--p1); margin-left:auto;}
+header .time{display:flex; align-items:baseline; gap:var(--p2);
+  padding-left:var(--p4); border-left:1px solid var(--line);}
+header .time .num{font-size:19px; font-weight:500;}
+
+/* Le bandeau EST un état : avertissement par défaut, .bad quand le démarrage a
+   échoué. Texte ET icône prennent donc la couleur de l'état — même traitement
+   que .chip.warn / .chip.bad, une seule couleur par état au lieu d'un texte
+   gris flanqué d'une icône colorée. Voir la règle icône d'état / icône
+   d'étiquette ci-dessus. */
+.banner{display:flex; align-items:center; gap:var(--p2); font-size:12.5px; color:var(--warn);}
+.banner .ic{font-size:15px; color:inherit; flex:none;}
+.banner .meta{margin-left:auto;}
+.banner.bad{color:var(--bad);}
+.banner:empty,.banner[hidden]{display:none;}
+
+/* --------------------------------------------------------------- carte ----- */
+.maphead{display:flex; align-items:center; gap:var(--p3); flex-wrap:wrap;}
+.legend{display:flex; gap:var(--p3); flex-wrap:wrap; margin-left:auto; font-size:11.5px; color:var(--i2);}
+.legend span{display:flex; align-items:center; gap:6px;}
+.legend i{width:8px; height:8px; border-radius:2px; flex:none;}
+.legend .ic{font-size:13px;}
+.mapwrap{position:relative; display:flex; flex-direction:column; flex:1; gap:var(--p3);}
+/* overflow:hidden vient déjà de .leaflet-container (leaflet.css) : les tuiles
+   sont en position absolue, sans lui elles dépasseraient aux quatre coins.
+   Le fond de secours --map-void est peint sur ce même élément, il est donc
+   arrondi lui aussi — pas de carré sombre pendant le chargement des tuiles. */
+#worldmap{background:var(--map-void); border-radius:var(--r-media); min-height:300px; flex:1;}
+/* le traitement ne porte QUE sur les tuiles : tracés et repères gardent leur
+   contraste plein, c'est ce qui garde la carte utilisable */
+.leaflet-tile-pane{filter:var(--map-filter);}
+.leaflet-container{background:var(--map-void); font-family:var(--mono); outline:0;}
+/* Règle 6 — ce qui se clique est une pilule. La paire + / − forme UNE capsule
+   verticale : le rayon va sur le conteneur (qui porte déjà overflow:hidden),
+   pas sur chaque <a>, sinon on obtient deux pastilles au lieu d'un contrôle.
+   Le filet interne reste : c'est lui qui dit qu'il y a deux boutons, et il
+   tombe au point le plus large de la capsule, donc il ne déborde d'aucune courbe. */
+.leaflet-control-zoom{border:0 !important; border-radius:var(--r-control); overflow:hidden;
+  box-shadow:0 0 0 1px var(--line);}
+/* Le sélecteur porte .leaflet-bar en plus : Leaflet pose `.leaflet-touch
+   .leaflet-bar a` (0,2,1) dès que le navigateur expose TouchEvent — ce que fait
+   Chrome de bureau. Un simple `.leaflet-control-zoom a` (0,1,1) perdait, et
+   avec lui la taille 34 px comme la cible 44 px de @media (pointer:coarse) :
+   les boutons faisaient 30 px partout. À spécificité égale, l'ordre source
+   tranche, et nous sommes après leaflet.css.
+   Aucune propriété de texte ici : le glyphe est une icône Reicon (voir app.js),
+   sa boîte est un élément flex de 1 em — l'align-items centre donc une boîte
+   dont l'encre est, elle, centrée par construction dans son viewBox. */
+.leaflet-control-zoom.leaflet-bar a{
+  display:flex !important; align-items:center; justify-content:center;
+  width:34px; height:34px; text-indent:0 !important;
+  background:color-mix(in oklch, var(--surf) 88%, transparent) !important; color:var(--i0) !important;
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:0 !important; border-radius:0 !important;}
+/* les deux moitiés portent quand même l'arrondi de leur extrémité : c'est ce
+   qui fait épouser la capsule à l'anneau de focus, qui suit le border-radius */
+.leaflet-control-zoom a:first-child{border-radius:var(--r-control) var(--r-control) 0 0 !important;}
+.leaflet-control-zoom a:last-child{border-radius:0 0 var(--r-control) var(--r-control) !important;}
+.leaflet-control-zoom a + a{border-top:1px solid var(--line) !important;}
+/* Un contrôle désactivé doit se voir : au zoom minimum, le « − » ne fait plus
+   rien. Notre `color: var(--i0) !important` écrasait le gris que Leaflet pose
+   via .leaflet-disabled — le bouton restait franc et invitait à cliquer. */
+.leaflet-control-zoom.leaflet-bar a.leaflet-disabled{
+  /* Teinte éteinte dérivée vers la surface — un jeton dédié plutôt qu'une
+     opacité, qui donnerait un résultat différent selon le fond.
+     Mesuré : actif 17,2:1, désactivé 2,4:1, distincts dans les deux thèmes.
+     Attention en testant : la carte s'ouvre au zoom minimum, donc le « − »
+     est DÉJÀ désactivé au chargement — comparer au « + », pas à lui-même. */
+  color:color-mix(in oklch, var(--i2) 48%, var(--surf)) !important;
+  cursor:default;}
+.leaflet-control-zoom a:focus{outline:none;}
+.leaflet-control-zoom a:focus-visible{outline:2px solid var(--i0) !important; outline-offset:-3px;}
+@media (pointer:coarse){ .leaflet-control-zoom.leaflet-bar a{width:44px; height:44px;} }
+/* Leaflet range ses conteneurs de contrôles à 1000 : on les redescend dans
+   l'échelle nommée, sinon rien de ce que la page pose ensuite ne peut passer
+   au-dessus sans surenchérir. */
+.leaflet-top,.leaflet-bottom{z-index:var(--z-map-control);}
+/* règle 4 de l'énoncé — les informations de la carte vivent en bas à GAUCHE,
+   sur toute la largeur et collées au bord : le coin bas-droit revient aux
+   boutons, et la bande a une hauteur connue (--map-attr-h) que les boutons
+   savent dégager. */
+.leaflet-bottom.leaflet-left{right:0;}
+.leaflet-bottom .leaflet-control-attribution{margin:0 !important;}
+/* --map-btns-w est posé par app.js (ResizeObserver) : c'est la largeur RÉELLE du
+   groupe de boutons. L'attribution s'arrête donc exactement là où il commence,
+   à toute largeur, et se replie sur plusieurs lignes plutôt que de passer
+   dessous — on ne tronque pas une mention légale. */
+.leaflet-control-attribution{background:color-mix(in oklch, var(--bg) 78%, transparent) !important;
+  color:var(--i2) !important; font-family:var(--sans) !important; font-size:10px !important;
+  line-height:1.4; padding:2px var(--p2) 2px calc(var(--r-media) + 2px) !important;
+  border-top-right-radius:var(--r-field); border-bottom-left-radius:var(--r-media);
+  max-width:calc(100% - var(--map-btns-w, 0px) - var(--p3));}
+.leaflet-control-attribution a{color:var(--i1) !important;}
+.leaflet-popup-content-wrapper{background:var(--surf) !important; color:var(--i0) !important;
+  box-shadow:0 0 0 1px var(--line) !important; border-radius:var(--r-field) !important;
+  font-family:var(--mono) !important; font-size:12px !important;}
+.leaflet-popup-tip{background:var(--surf) !important;}
+.leaflet-popup-close-button{color:var(--i2) !important;}
+.leaflet-div-icon{background:transparent !important; border:0 !important;}
+/* Un repère marque une POSITION : c'est l'encre du glyphe qui doit tomber sur
+   le point, pas le coin de sa boîte. La ligne est donc centrée sur l'ancre
+   (translateY) et reculée d'un demi-glyphe (margin-left) ; les divIcon ancrent
+   en [0,0]. Exact quelle que soit la police, là où un iconAnchor chiffré suit
+   la métrique d'Inter et se décale dès qu'elle change. */
+.sat-icon{display:flex; align-items:center; gap:6px; white-space:nowrap; transform:translateY(-50%);
+  font-family:var(--mono);
+  font-weight:600; font-size:11.5px; letter-spacing:-.02em; color:var(--marker-ink);
+  text-shadow:0 0 3px var(--marker-halo),0 0 3px var(--marker-halo),0 0 7px var(--marker-halo);}
+/* flex:none obligatoire : dans un divIcon sans iconSize, flex-shrink écrase la
+   pastille à 0 px de large */
+.sat-icon .dot{width:9px; height:9px; border-radius:50%; flex:none; background:var(--acc);
+  box-shadow:0 0 0 1.5px color-mix(in oklch, var(--marker-halo) 85%, transparent);}
+.sat-icon .ic.house{flex:none; color:var(--marker-ink);}
+.sat-icon.sat{margin-left:-4.5px;}      /* demi-pastille : 9 px / 2 */
+.sat-icon.station{margin-left:-8px;}    /* demi-maison : 16 px / 2 */
+.wx-icon{opacity:.72; pointer-events:auto;}
+.wx-icon .ic{font-size:22px; color:var(--warn);}
+.wx-icon .t{font-family:var(--mono); font-size:10px; color:var(--marker-ink);
+  text-shadow:0 0 4px var(--marker-halo), 0 0 4px var(--marker-halo);}
+/* Boutons de cadrage, posés sur la carte. Le groupe est ancré en bas à droite
+   mais borné à gauche par la carte : il enroule vers le HAUT (le bas est fixe)
+   au lieu de déborder. Il dégage la bande d'attribution, donc aucun
+   chevauchement quelle que soit la largeur. */
+/* Un seul groupe posé dans le coin : le retrait est LE MÊME en bas et à droite
+   (var(--p3) des deux côtés), et il se mesure au bord de la carte, pas au bord
+   d'un conteneur intermédiaire — .mapbtns est bien l'enfant direct de .mapwrap,
+   qui a exactement la géométrie de #worldmap. width:max-content pour que la
+   boîte colle aux boutons : c'est cette largeur que lit app.js. */
+.mapbtns{position:absolute; z-index:var(--z-map-btn);
+  right:var(--p3); bottom:var(--p3); width:max-content;
+  max-width:calc(100% - 2 * var(--p3));
+  display:flex; flex-wrap:wrap; justify-content:flex-end; gap:var(--p1);
+  pointer-events:none;}
+.mapbtns > *{pointer-events:auto;}
+/* 94 % et non 90 : sous la pilule il y a de l'imagerie satellite, donc
+   n'importe quelle luminosité. Chaque point de transparence en moins est un
+   point de contraste texte/fond garanti en plus, quel que soit le terrain. */
+.mapbtn{background:color-mix(in oklch, var(--surf) 94%, transparent);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  box-shadow:0 0 0 1px var(--line);}
+/* règle 7 — l'élément marqué garde son aplat d'accent, au repos comme au
+   survol ; c'est l'encre qui reste --on-acc, pas le fond qui redevient gris */
+.mapbtn[aria-pressed="true"]{background:var(--acc); color:var(--on-acc);
+  -webkit-backdrop-filter:none; backdrop-filter:none;}
+
+/* --------------------------------------------------- règle 2 · télémétrie ---
+   Six mesures de même rang. Une seule peut porter l'accent — « Visibilité »,
+   et seulement quand elle vaut « Audible » : c'est la seule qui change ce
+   qu'on fait. Les cinq autres sont des mesures, elles n'ont pas à crier. */
+.telem{display:grid; grid-template-columns:repeat(6,1fr); gap:var(--g2);}
+@media (max-width:1100px){ .telem{grid-template-columns:repeat(3,1fr); gap:var(--p5) var(--g2);} }
+@media (max-width:600px){ .telem{grid-template-columns:repeat(2,1fr);} }
+.cell .num{font-size:16px; font-weight:500; margin-top:4px; display:block; white-space:nowrap;}
+.cell .num small{font-family:var(--sans); font-size:11px; font-weight:400; color:var(--i2);
+  margin-left:4px; letter-spacing:0;}
+.cell.actionable .num,.cell.actionable .lab{color:var(--acc);}
+
+/* --------------------------------------------- « maintenant », deux colonnes */
+.now{display:grid; gap:var(--g2); align-items:stretch;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);}
+@media (max-width:1000px){ .now{grid-template-columns:1fr;} }
+.now > *{display:flex; flex-direction:column; min-width:0;}
+/* Le nom est en 20 px, la pastille de mode en 11,5 px dans une pilule
+   rembourrée. Aligner sur la ligne de base fait descendre la boîte de la
+   pilule de 3 px sous le centre du nom : elle paraît tomber. Entre un grand
+   texte et un petit objet encadré, c'est le centrage des boîtes qui est juste. */
+.satline{display:flex; align-items:center; gap:var(--p3); flex-wrap:wrap;}
+.satname{font-size:20px; font-weight:600; letter-spacing:-.022em; text-wrap:balance;}
+.modepill{font-size:11.5px; color:var(--i1); background:var(--surf-2);
+  border-radius:var(--r-control); padding:5px 12px; white-space:nowrap;}
+/* l'air se met AU-DESSUS du groupe : line-height 1 et interlettrage négatif
+   creusent déjà un vide optique sous le chiffre */
+.cdblock{display:flex; flex-direction:column; gap:2px;}
+.countdown{font-family:var(--mono); font-size:clamp(42px,5vw,76px); font-weight:500;
+  line-height:1.02; letter-spacing:-.045em; font-variant-numeric:tabular-nums;}
+.countdown.live{color:var(--acc);}
+.countdown-label{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--i1);}
+.countdown-label .ic{font-size:14px;}
+.countdown.live + .countdown-label{color:var(--acc);}
+.passfacts{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--p4);}
+@media (max-width:640px){ .passfacts{grid-template-columns:repeat(2,1fr);} }
+.passfacts .num{font-size:15px; font-weight:500; margin-top:4px; display:block;}
+.passfacts .v.good{color:var(--good);} .passfacts .v.warn{color:var(--warn);}
+.freqrow{display:grid; grid-template-columns:1fr 1fr; gap:var(--p4) var(--g2);}
+@media (max-width:640px){ .freqrow{grid-template-columns:1fr;} }
+.freqrow .num{font-size:20px; font-weight:500; margin-top:5px; display:block;}
+.freqrow .doppler{font-family:var(--mono); font-size:11.5px; color:var(--i1); margin-top:3px;
+  font-variant-numeric:tabular-nums;}
+.freqrow .pl{font-size:11.5px; color:var(--i2); margin-top:6px;}
+
+/* le palier courant : c'est l'action du moment (méthode FTM-500D), il ne peut
+   pas vivre derrière un onglet pendant qu'il sert */
+.memo{display:flex; align-items:center; gap:var(--p3); flex-wrap:wrap;
+  padding:var(--p3) var(--p4); border-radius:var(--r-field); background:var(--surf-2);}
+.memo[hidden]{display:none;}
+.memo .tagm{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--on-acc);
+  background:var(--acc); border-radius:var(--r-control); padding:3px 10px;}
+.memo .when{font-family:var(--mono); font-size:12px; color:var(--i1); font-variant-numeric:tabular-nums;}
+.memo .hint{font-size:11.5px; color:var(--i2);}
+.memo .more{margin-left:auto; font-size:11.5px; color:var(--i1); background:none; padding:4px 0;
+  text-decoration:underline; text-underline-offset:3px;}
+
+/* règle 10 — l'accessoire s'ouvre, il ne s'empile pas ----------------------- */
+details{border-top:1px solid var(--line); padding-top:var(--p5);}  /* = au gap du parent */
+details.pushed{margin-top:auto;}
+summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:var(--p2);
+  font-size:12.5px; font-weight:500; color:var(--i1);}
+summary::-webkit-details-marker{display:none;}
+summary > .ic{color:var(--i2);}
+summary .meta{margin-left:auto;}
+/* fermé = pointe en bas, ouvert = pointe en haut : la rotation dit l'axe du
+   mouvement (jamais droite/bas, qui raconte un pliage latéral inexistant) */
+summary::after{content:""; width:0; height:0; border-top:5px solid currentColor;
+  border-left:4px solid transparent; border-right:4px solid transparent; flex:none;
+  margin-left:var(--p3); transition:transform 150ms ease-out;}
+details[open] summary::after{transform:rotate(180deg);}
+summary:focus-visible{outline:2px solid var(--i0); outline-offset:3px; border-radius:4px;}
+details .body{padding-top:var(--p4);}
+.polarwrap{display:flex; flex-direction:column; align-items:center; gap:var(--p3);}
+#polar{width:100%; max-width:260px; height:auto;}
+.cone-note{display:flex; gap:var(--p2); width:100%;}
+.cone-note .ic{font-size:15px; color:var(--warn); flex:none; margin-top:1px;}
+
+/* -------------------------------------------------------------- onglets ---- */
+.tabs{display:flex; gap:var(--p1); flex-wrap:wrap;}
+.tabs button[aria-selected="true"]{background:var(--i0); color:var(--bg);}
+.tabs button[aria-selected="true"] .ic{color:var(--bg);}
+[role="tabpanel"][hidden]{display:none;}
+
+.issgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--g2);}
+@media (max-width:900px){ .issgrid{grid-template-columns:repeat(2,1fr); gap:var(--p5) var(--g2);} }
+@media (max-width:520px){ .issgrid{grid-template-columns:1fr;} }
+.issmode{display:flex; flex-direction:column; gap:var(--p2);}
+.statepill{display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--i2);}
+.statepill .ic{font-size:12px;}
+.statepill.active{color:var(--good);} .statepill.off{color:var(--bad);}
+.statepill.scheduled{color:var(--warn);} .statepill.idle,.statepill.unknown{color:var(--i2);}
+.issmode .lab2{font-size:13px; font-weight:600; color:var(--i0);}
+.issmode .fq{font-family:var(--mono); font-size:16px; font-weight:500;
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+.issmode .ex{font-size:11.5px; line-height:1.6; color:var(--i1);}
+.isssrc{font-size:11.5px; color:var(--i2);} .isssrc a{color:var(--i1);}
+
+.plangrid{display:grid; grid-template-columns:repeat(5,1fr); gap:var(--g2);}
+@media (max-width:900px){ .plangrid{grid-template-columns:repeat(2,1fr); gap:var(--p5) var(--g2);} }
+.step .when{font-size:11px; color:var(--i2);}
+.step .rx{font-family:var(--mono); font-size:15px; font-weight:500; margin-top:5px;
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+.step .tx{font-family:var(--mono); font-size:12px; color:var(--i1); margin-top:3px;
+  font-variant-numeric:tabular-nums;}
+.step.now .when,.step.now .rx{color:var(--acc);}
+.planfoot{display:flex; align-items:center; gap:var(--p4); flex-wrap:wrap;}
+.hint{font-size:11.5px; color:var(--i2); line-height:1.55;}
+
+.tablewrap{overflow-x:auto;}
+table{width:100%; border-collapse:collapse;}
+thead th{text-align:left; font-size:10px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--i2); padding:0 var(--p3) var(--p3) 0; white-space:nowrap;}
+thead th:last-child{padding-right:0;}
+/* UN FILET DE SÉPARATION APPARTIENT À LA LIGNE, PAS À CHAQUE CELLULE.
+   Porté par les <td>, il devient sept boîtes juxtaposées ; les frontières de
+   colonnes tombant sur des fractions de pixel (mesuré : 0,59 · 0,56 · 0,56 ·
+   0,63 · 0,48 · 0,06 · 0,66), chaque raccord laisse un pixel clair — invisible
+   à 100 %, franc au zoom ou sur écran dense. Porté par le <tr>, c'est UNE boîte
+   continue sur toute la largeur : plus aucun raccord. border-collapse:collapse
+   accepte les bordures sur <tr>, c'est fait pour ça.
+   Ne pas remettre border-top sur td « pour faire propre » : ça recrée le défaut. */
+tbody tr{border-top:1px solid var(--line);}
+tbody td{padding:var(--p3) var(--p3) var(--p3) 0;
+  font-size:13px; color:var(--i1); vertical-align:baseline;}
+tbody td:last-child{padding-right:0;}
+tbody tr{cursor:pointer; touch-action:manipulation;}
+tbody tr:focus-visible{outline:2px solid var(--i0); outline-offset:-2px;}
+/* CE QUI APPARTIENT À LA LIGNE SE PEINT SUR LA LIGNE : filet de séparation et
+   fond de survol traversent les sept colonnes, ils vont sur <tr>, jamais sur
+   <td>. Peints cellule par cellule, ils exposent la moindre différence de boîte
+   entre colonnes — et il y en avait une : .satcell était un conteneur flex, ce
+   qui ne produit pas la même boîte de ligne qu'un texte en ligne (mesuré
+   35,2 px contre 37,2 pour les six autres, et 1 px d'écart de ligne de base
+   sous vertical-align:baseline). D'où la marche visible au survol.
+   Une pastille devant un nom n'a pas besoin de flex : inline-block suffit. */
+.satcell{font-weight:600; color:var(--i0);}
+.satdot{display:inline-block; width:8px; height:8px; border-radius:50%;
+  vertical-align:middle; margin-right:var(--p2);}
+/* la ligne suivie n'a pas d'aplat : elle réagit donc au survol comme les autres */
+tbody tr.sel .satcell{color:var(--acc);}
+tbody tr.sel{border-top-color:var(--acc);}
+td.num,th.num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  color:var(--i0); white-space:nowrap; letter-spacing:-.02em;}
+th.num{font-family:var(--sans); color:var(--i2);}
+td .loc{font-family:var(--mono); color:var(--i2); font-size:11px;}
+.q{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; white-space:nowrap;}
+.q::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none;}
+.q.good{color:var(--good);} .q.ok{color:var(--warn);} .q.poor{color:var(--i2);}
+
+.qsoform{display:flex; gap:var(--p3); flex-wrap:wrap; align-items:flex-end;}
+.field2{display:flex; flex-direction:column; gap:6px;}
+.field2 input{font-family:var(--mono); font-size:16px; color:var(--i0); background:var(--bg);
+  border:1px solid var(--line); border-radius:var(--r-field); padding:9px 12px; width:145px;}
+.field2 input::placeholder{color:var(--i2);}
+.field2 input:focus{outline:2px solid var(--i0); outline-offset:-1px; border-color:transparent;}
+
+.gear{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--g2);}
+@media (max-width:760px){ .gear{grid-template-columns:1fr; gap:var(--p5);} }
+.gearcard{display:flex; gap:var(--p3);}
+.gearicon{width:32px; height:32px; flex:none; display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-control); background:var(--surf-2); color:var(--i2);}
+.gearicon .ic{font-size:17px;}
+.gearcard .t{font-size:12.5px; font-weight:600;}
+.gearcard .s{font-size:11.5px; color:var(--i2); margin-top:4px; line-height:1.6;}
+footer{text-align:center; font-size:11px; color:var(--i2); line-height:1.8;}
+
+/* règle 7 — le survol ne remplace jamais le fond d'un élément déjà marqué --- */
+/* Le survol se DÉRIVE, il ne se choisit pas : --surf-2 et --line valent tous
+   deux neutral-800, un survol codé sur --line ne changeait donc rien. En
+   glissant vers l'encre, l'écart existe dans les deux thèmes sans second jeu
+   de valeurs — plus clair sur fond sombre, plus sombre sur fond clair. */
+:root{
+  --hover:color-mix(in oklch, var(--surf-2) 86%, var(--i0));
+  --hover-strong:color-mix(in oklch, var(--surf-2) 74%, var(--i0));
+}
+@media (hover:hover) and (pointer:fine){
+  button:hover,.btn:hover{background:var(--hover);}
+  button:hover .ic,.btn:hover .ic{color:var(--i1);}
+  /* un bouton désactivé garde son aplat : le survol est une promesse de clic */
+  button:disabled:hover,.btn:disabled:hover{background:var(--surf-2);}
+  button:disabled:hover .ic,.btn:disabled:hover .ic{color:var(--i2);}
+  button[aria-busy="true"]:hover .ic{color:var(--i0);}
+  /* la ligne du dessus repeignait l'icône en --i1 SUR l'aplat d'accent :
+     neutral-300 sur amber-500, 1,5:1 — le « gris illisible » au survol.
+     L'encre d'un élément marqué ne dépend pas du survol. */
+  /* UN SURVOL DÉPLACE LA CLARTÉ DANS LA MÊME TEINTE. On bouge L, on ne remplace
+     jamais H : mélanger vers --surf ferait virer l'ambre au gris, c'est-à-dire
+     changer de couleur. On assombrit — même sens dans les deux thèmes, alors
+     qu'un mélange vers --i0 éclaircirait en sombre et assombrirait en clair.
+     EN OKLAB, PAS EN OKLCH. Mesuré : le même mélange écrit `in oklch` fait
+     dériver la teinte de 15° — en espace polaire l'angle du noir vaut 0 et tire
+     l'ambre vers le rouge. En oklab le noir est (0,0,0) : a et b sont mis à
+     l'échelle, atan2 est inchangé, dérive nulle.
+     Le dosage : à 84 % l'écart mesuré est de −0,124 en sombre et −0,088 en
+     clair, pour un chroma qui reste à 84 %. C'est le thème SOMBRE qui borne le
+     dosage par le bas : y assombrir le fond le rapproche de --on-acc, presque
+     noir ; à 84 % il reste 5,9:1, à 75 % on tomberait sous 4,5:1. */
+  button[aria-pressed="true"]:hover{background:color-mix(in oklab, var(--acc) 84%, var(--shade));
+    color:var(--on-acc);}
+  button[aria-pressed="true"]:hover .ic{color:var(--on-acc);}
+  /* Suivi coupé : fond de surface, donc survol de surface — même dérivation que
+     tous les autres boutons de l'interface (--hover-strong), pas de pointe
+     d'ambre : l'ambre ne marque que « maintenant » (règle 2), il n'annonce pas.
+     :not() plutôt que la seule spécificité : la règle d'état ne doit pas
+     dépendre d'un décompte de sélecteurs pour ne pas être écrasée.
+     La pilule perd aussi son flou au survol — sur de l'imagerie satellite, un
+     fond translucide écrase l'écart qu'on vient de creuser. */
+  .mapbtn:not([aria-pressed="true"]):hover{background:var(--hover-strong);
+    backdrop-filter:none; -webkit-backdrop-filter:none;}
+  .tabs button[aria-selected="true"]:hover{background:var(--i0); color:var(--bg);}
+  .tabs button[aria-selected="true"]:hover .ic{color:var(--bg);}
+  tbody tr:hover{background:var(--surf-2);}
+  .memo .more:hover{background:none; color:var(--i0);}
+  summary:hover{color:var(--i0);}
+  .field2 input:hover{border-color:var(--i2);}
+  .leaflet-control-zoom a:hover{background:var(--surf-2) !important;}
+}
+
+/* --------------------------------------------- modale de configuration ----- */
+.modal-veil{position:fixed; inset:0; z-index:var(--z-modal); display:flex; align-items:center;
+  justify-content:center; background:color-mix(in oklch, var(--bg) 88%, transparent); padding:20px;}
 .modal-veil[hidden]{display:none;}
-.modal{
-  width:100%; max-width:420px; border:1px solid var(--panel-line); border-radius:14px;
-  background:linear-gradient(180deg, rgba(17,26,44,0.97), rgba(11,18,32,0.97));
-  padding:26px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
-}
-.modal h2{margin:0 0 6px; font-family:var(--disp); font-size:19px; color:var(--ink-0); letter-spacing:0.02em;}
-.modal-intro{margin:0 0 18px; font-family:var(--body); font-size:12.5px; color:var(--ink-1); line-height:1.5;}
-.field{display:block; margin-bottom:12px;}
-.field span{display:block; font-family:var(--mono); font-size:10.5px; color:var(--ink-2);
-  text-transform:uppercase; letter-spacing:0.08em; margin-bottom:5px;}
-.field input{width:100%; font-family:var(--mono); font-size:14px; color:var(--ink-0);
-  background:rgba(255,255,255,0.03); border:1px solid var(--panel-line); border-radius:7px;
-  padding:9px 11px;}
-.field input:focus{outline:none; border-color:var(--phosphor-dim); background:rgba(75,227,199,0.05);}
-.modal-preview{font-family:var(--mono); font-size:11.5px; color:var(--phosphor); min-height:16px; margin:4px 0 6px;}
-.modal-error{font-family:var(--mono); font-size:11.5px; color:var(--danger); min-height:16px; margin-bottom:4px;}
-.modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:8px;}
-.modal-hint{margin:16px 0 0; font-family:var(--mono); font-size:10.5px; color:var(--ink-2); line-height:1.5;}
-.modal-hint code{color:var(--ink-1);}
+.modal{width:100%; max-width:430px; border-radius:var(--r-surface); background:var(--surf);
+  box-shadow:0 0 0 1px var(--line), 0 24px 60px oklch(0% 0 0 / .45);
+  padding:var(--p6) var(--p6) var(--p5); display:flex; flex-direction:column; gap:var(--p4);}
+.modal h2{border-bottom:0; padding-bottom:0; font-size:17px;}
+.modal-intro{font-size:12.5px; color:var(--i1); line-height:1.55; margin:0;}
+.field{display:flex; flex-direction:column; gap:6px;}
+.field span{font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--i2);}
+.field input{font-family:var(--mono); font-size:16px; color:var(--i0); background:var(--bg);
+  border:1px solid var(--line); border-radius:var(--r-field); padding:10px 12px; width:100%;}
+.field input:focus{outline:2px solid var(--i0); outline-offset:-1px; border-color:transparent;}
+.modal-preview{font-family:var(--mono); font-size:12px; color:var(--acc); min-height:16px;}
+.modal-error{font-family:var(--sans); font-size:12px; color:var(--bad); min-height:16px;}
+.modal-actions{display:flex; justify-content:flex-end; gap:var(--p2);}
+.modal-hint{font-size:11.5px; color:var(--i2); line-height:1.55; margin:0;}
+.modal-hint code{font-family:var(--mono); color:var(--i1);}
+
+/* ------------- icônes : banque Reicon (Filled), servies par /vendor/icon/ --- */
+.ic{display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:1em; height:1em; vertical-align:-.14em; color:inherit;}
+.ic svg{width:100%; height:100%; display:block;}
+.ic svg path,.ic svg circle,.ic svg rect{fill:currentColor;}
+
+.visually-hidden{position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;}
+
+/* État des alertes : n'apparaît que si l'utilisateur doit agir (autoriser,
+   débloquer). Sinon le bouton en accent suffit et la ligne reste absente. */
+.alert-state{align-self:center; font-size:11.5px; color:var(--i2); max-width:24ch; line-height:1.25;}
+.alert-state.bad{color:var(--bad);}
+.alert-state[hidden]{display:none;}
+
+
+/* ---- commande en cours -----------------------------------------------------
+   Rafraîchir déclenche deux appels réseau : une à deux secondes pendant
+   lesquelles le bouton ne disait rien, et le clic semblait n'avoir pris qu'après
+   coup. L'état `aria-busy` était déjà posé par le gestionnaire, il ne lui
+   manquait qu'une forme visible.
+
+   L'icône s'éclaircit EN PLUS de tourner : sous `prefers-reduced-motion` la
+   règle globale annule toutes les animations, et une rotation était alors le
+   seul signal — il n'en serait plus resté aucun. */
+@keyframes spin{to{transform:rotate(1turn);}}
+
+/* Règle 15 — un état désactivé se distingue par un JETON, pas par une opacité.
+   Ici les deux encres s'échangent au lieu de pâlir ensemble : le libellé recule
+   sur --i2, la seule pièce qui bouge passe devant sur --i0. Ce qui tourne est
+   ce qu'on doit regarder, ce qui est éteint est ce qu'on ne peut plus toucher.
+   L'aplat ne bouge PAS : c'est lui qui dit « ceci est un bouton », et un bouton
+   momentanément indisponible reste un bouton. L'éteindre remplacerait « on ne
+   peut pas cliquer » par « il n'y a rien ici ».
+   Vaut pour TOUS les boutons désactivés, pas seulement Rafraîchir — Enregistrer
+   se désactive pendant l'écriture du fichier de station, exactement pareil. */
+button:disabled,.btn:disabled{color:var(--i2); cursor:not-allowed;}
+button:disabled .ic,.btn:disabled .ic{color:var(--i2);}
+button:disabled:active,.btn:disabled:active{transform:none;}   /* pas d'enfoncement à vide */
+
+/* Le curseur ne dit RIEN pendant le rafraîchissement, et c'est délibéré :
+     - `progress` invoque le curseur d'attente du système, étranger à la banque
+       d'icônes comme à la palette ;
+     - `not-allowed` (hérité de :disabled) dessine un rond barré, qui annonce un
+       refus là où il n'y a qu'une attente ;
+     - un curseur ne peut pas être une icône de Reicon : les navigateurs
+       n'acceptent qu'une image FIXE, et Safari gère mal les curseurs SVG — il
+       ne tournerait donc pas, ce qui est précisément ce qu'on veut montrer.
+   L'attente est dite par l'icône du bouton, qui tourne et vient bien de la banque. */
+button[aria-busy="true"]{cursor:default;}
+button[aria-busy="true"] .ic{color:var(--i0); animation:spin .9s linear infinite;}
+
+/* ---- pastilles d'annonce ---------------------------------------------------
+   La notification système ne sort pas toujours : mode Concentration, réglages
+   macOS, permission refusée — trois causes invisibles depuis la page. Celle-ci
+   s'affiche à coup sûr, dans la page, tant que l'onglet est visible. Les deux
+   sont complémentaires : la bulle système couvre l'onglet en arrière-plan,
+   la pastille couvre le poste qui retient les bulles. */
+.toasts{position:fixed; top:var(--g); right:clamp(12px,2.4vw,34px); z-index:var(--z-toast);
+  display:flex; flex-direction:column; gap:var(--p2); width:min(330px, calc(100vw - 24px));
+  pointer-events:none;}
+.toast{pointer-events:auto; cursor:pointer; text-align:left; font:inherit; color:var(--i0);
+  background:var(--surf); box-shadow:0 0 0 1px var(--line), 0 8px 24px -8px var(--shade);
+  border:0; border-radius:var(--r-surface); padding:var(--p3) var(--p4);
+  display:flex; gap:var(--p3); align-items:flex-start;
+  animation:toast-in .22s cubic-bezier(.2,.8,.3,1);}
+.toast:hover{background:var(--surf-2);}
+.toast .ic{font-size:17px; color:var(--acc); flex:none; margin-top:1px;}
+.toast .txt{min-width:0; flex:1;}
+.toast .t{display:block; font-size:13px; font-weight:600; line-height:1.25;}
+.toast .b{display:block; font-size:11.5px; color:var(--i1); line-height:1.4; margin-top:2px; white-space:pre-line;}
+.toast .b .num{font-family:var(--mono);}
+/* touch-action : sans ça le navigateur préempte le geste horizontal pour son
+   propre défilement et le glissement ne reçoit jamais d'événement. */
+.toast{touch-action:pan-y; transition:transform .18s ease, opacity .18s ease;}
+.toast.leaving{opacity:0; transform:translateX(110%);}
+@keyframes toast-in{from{opacity:0; transform:translateX(12px);}}

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype · Passage sélectionné — JB-SATRACK</title>
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/picker.css">
+<style>
+  .hero-grid{display:grid; grid-template-columns:1.15fr 1fr; gap:14px; align-items:start;}
+  @media (max-width:900px){ .hero-grid{grid-template-columns:1fr;} }
+  .proto-neighbour{min-height:420px;}
+
+  /* ============================================================ COCKPIT
+     Axe : densité d'information / réalisme instrument.
+     Tout sur une grille stricte, filets capillaires, labels micro-capitales,
+     compte à rebours en afficheur segmenté, numériques alignés à droite. */
+  .v-cockpit{
+    --line:rgba(30,44,70,.9);
+    border:1px solid var(--panel-line); border-radius:12px; overflow:hidden;
+    background:linear-gradient(180deg, rgba(17,26,44,.72), rgba(11,18,32,.74));
+    animation:cockpit-in 130ms ease-out both;
+  }
+  @keyframes cockpit-in{ from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:none;} }
+  .v-cockpit .bar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:9px 14px; border-bottom:1px solid var(--line);
+    font-family:var(--disp); font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-1);
+  }
+  .v-cockpit .bar .tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; color:var(--ink-2);}
+  .v-cockpit .idrow{
+    display:flex; align-items:baseline; gap:10px; padding:12px 14px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  .v-cockpit .idrow .sat{font-family:var(--disp); font-size:23px; letter-spacing:.02em; color:var(--ink-0);}
+  .v-cockpit .idrow .mode{
+    margin-left:auto; font-family:var(--mono); font-size:10px; letter-spacing:.06em;
+    color:var(--phosphor); border:1px solid var(--phosphor-dim); border-radius:4px; padding:3px 7px;
+  }
+  .v-cockpit .cd{
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:14px;
+    padding:14px; border-bottom:1px solid var(--line);
+    background:
+      repeating-linear-gradient(180deg, transparent 0 3px, rgba(75,227,199,.03) 3px 4px);
+  }
+  .v-cockpit .cd .num{
+    font-family:var(--mono); font-weight:600; font-size:46px; line-height:1;
+    color:var(--phosphor); font-variant-numeric:tabular-nums; letter-spacing:.03em;
+  }
+  .v-cockpit .cd .meta{text-align:right; font-family:var(--mono); font-size:10px; line-height:1.5; color:var(--ink-2); letter-spacing:.06em;}
+  .v-cockpit .cd .meta b{display:block; color:var(--ink-1); font-weight:500; letter-spacing:.1em; text-transform:uppercase;}
+  .v-cockpit .facts{display:grid; grid-template-columns:repeat(4,1fr);}
+  .v-cockpit .facts .f{padding:10px 12px; border-right:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .v-cockpit .facts .f:nth-child(4n){border-right:none;}
+  .v-cockpit .facts .k{font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);}
+  .v-cockpit .facts .v{font-family:var(--mono); font-size:15px; color:var(--ink-0); margin-top:3px; font-variant-numeric:tabular-nums;}
+  .v-cockpit .facts .v.good{color:var(--good);}
+  .v-cockpit .rf{display:grid; grid-template-columns:1fr 1fr;}
+  .v-cockpit .rf .c{padding:11px 14px; border-right:1px solid var(--line);}
+  .v-cockpit .rf .c:last-child{border-right:none;}
+  .v-cockpit .rf .k{font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);}
+  .v-cockpit .rf .big{font-family:var(--mono); font-size:20px; color:var(--ink-0); margin-top:4px; font-variant-numeric:tabular-nums;}
+  .v-cockpit .rf .dop{font-family:var(--mono); font-size:10.5px; margin-top:3px;}
+  .v-cockpit .rf .dop.up{color:#ff9a8a;} .v-cockpit .rf .dop.down{color:#8ab4ff;}
+  .v-cockpit .rf .sub{font-family:var(--mono); font-size:10px; color:var(--ink-2); margin-top:5px;}
+  .v-cockpit .note{padding:10px 14px; font-family:var(--mono); font-size:10.5px; line-height:1.55; color:var(--ink-2); border-top:1px solid var(--line);}
+
+  /* ============================================================ EDITORIAL
+     Axe : hiérarchie & retenue. Le compte à rebours EST le panneau,
+     le reste respire autour, une idée par coup d'œil. */
+  .v-editorial{padding:30px 30px 24px; border:1px solid var(--panel-line); border-radius:14px;
+    background:linear-gradient(180deg, rgba(17,26,44,.6), rgba(11,18,32,.7));}
+  .v-editorial .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-2);
+    display:flex; gap:10px; align-items:center;
+  }
+  .v-editorial .eyebrow .mode{color:var(--phosphor);}
+  .v-editorial .sat{font-family:var(--disp); font-size:26px; color:var(--ink-0); margin:6px 0 22px; letter-spacing:.02em;}
+  .v-editorial .cd{
+    font-family:var(--mono); font-weight:600; font-size:clamp(56px, 9vw, 88px); line-height:.95;
+    color:var(--phosphor); font-variant-numeric:tabular-nums; letter-spacing:.02em;
+    text-shadow:0 0 40px rgba(75,227,199,.28);
+    animation:ed-cd 220ms ease-out both;
+  }
+  @keyframes ed-cd{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+  .v-editorial .cdlabel{font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); margin-top:10px;}
+  .v-editorial .facts{
+    display:flex; flex-wrap:wrap; gap:28px; margin:26px 0 24px; padding-top:20px;
+    border-top:1px solid var(--panel-line);
+  }
+  .v-editorial .facts div{display:flex; flex-direction:column; gap:4px;}
+  .v-editorial .facts .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);}
+  .v-editorial .facts .v{font-family:var(--mono); font-size:18px; color:var(--ink-0); font-variant-numeric:tabular-nums;}
+  .v-editorial .facts .v.good{color:var(--good);}
+  .v-editorial .freq{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+  .v-editorial .freq .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);}
+  .v-editorial .freq .v{font-family:var(--mono); font-size:22px; color:var(--ink-0); margin-top:5px; font-variant-numeric:tabular-nums;}
+  .v-editorial .freq .d{font-family:var(--mono); font-size:11px; margin-top:3px; color:var(--ink-1);}
+  .v-editorial .note{font-family:var(--body); font-style:italic; font-size:12.5px; line-height:1.6; color:var(--ink-2); margin-top:22px; max-width:52ch;}
+
+  /* ============================================================ PHOSPHOR
+     Axe : personnalité mission-control / CRT. Lueur phosphore, deux-points
+     clignotant, texture de balayage, étiquettes lumineuses, allumage à l'entrée. */
+  .v-phosphor{
+    position:relative; padding:20px; border:1px solid #123; border-radius:12px;
+    background:radial-gradient(120% 80% at 50% 0%, rgba(75,227,199,.06), transparent 70%), #070d17;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(75,227,199,.06);
+    animation:ph-on 170ms ease-out both;
+  }
+  @keyframes ph-on{ from{opacity:0; transform:scaleY(.92);} to{opacity:1; transform:none;} }
+  .v-phosphor::after{
+    content:""; position:absolute; inset:0; border-radius:12px; pointer-events:none;
+    background:repeating-linear-gradient(180deg, transparent 0 2px, rgba(0,0,0,.14) 2px 3px);
+    mix-blend-mode:overlay;
+  }
+  .v-phosphor .corner{position:absolute; width:10px; height:10px; border:1px solid rgba(75,227,199,.4);}
+  .v-phosphor .corner.tl{top:6px; left:6px; border-right:0; border-bottom:0;}
+  .v-phosphor .corner.tr{top:6px; right:6px; border-left:0; border-bottom:0;}
+  .v-phosphor .corner.bl{bottom:6px; left:6px; border-right:0; border-top:0;}
+  .v-phosphor .corner.br{bottom:6px; right:6px; border-left:0; border-top:0;}
+  .v-phosphor .hd{display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--phosphor);}
+  .v-phosphor .hd .dot{width:6px; height:6px; border-radius:50%; background:var(--phosphor); box-shadow:0 0 10px var(--phosphor);}
+  .v-phosphor .satline{display:flex; align-items:center; gap:10px; margin:12px 0 4px;}
+  .v-phosphor .satline .sat{font-family:var(--disp); font-size:22px; color:var(--ink-0);}
+  .v-phosphor .satline .tag,
+  .v-phosphor .qtag{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--phosphor); border:1px solid rgba(75,227,199,.35); border-radius:3px; padding:3px 6px;
+    box-shadow:0 0 12px rgba(75,227,199,.12), inset 0 0 12px rgba(75,227,199,.06);
+  }
+  .v-phosphor .cd{
+    font-family:var(--mono); font-weight:600; font-size:52px; line-height:1; margin:14px 0 4px;
+    color:var(--phosphor); font-variant-numeric:tabular-nums; letter-spacing:.04em;
+    text-shadow:0 0 8px rgba(75,227,199,.55), 0 0 26px rgba(75,227,199,.35);
+  }
+  .v-phosphor .cd .col{animation:ph-blink 1.06s steps(1) infinite;}
+  @keyframes ph-blink{ 0%,50%{opacity:1;} 50.01%,100%{opacity:.25;} }
+  @media (prefers-reduced-motion: reduce){ .v-phosphor .cd .col{animation:none;} }
+  .v-phosphor .cdlabel{font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--amber);}
+  .v-phosphor .facts{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin:16px 0 0; background:rgba(75,227,199,.12);}
+  .v-phosphor .facts .f{background:#070d17; padding:10px;}
+  .v-phosphor .facts .k{font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);}
+  .v-phosphor .facts .v{font-family:var(--mono); font-size:15px; color:var(--phosphor); margin-top:4px; font-variant-numeric:tabular-nums;}
+  .v-phosphor .rf{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
+  .v-phosphor .rf .c{border:1px solid rgba(75,227,199,.16); border-radius:6px; padding:10px 12px; background:rgba(75,227,199,.03);}
+  .v-phosphor .rf .k{font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);}
+  .v-phosphor .rf .big{font-family:var(--mono); font-size:19px; color:var(--ink-0); margin-top:4px; font-variant-numeric:tabular-nums;}
+  .v-phosphor .rf .dop{font-family:var(--mono); font-size:10.5px; margin-top:3px;}
+  .v-phosphor .rf .dop.up{color:#ff9a8a;} .v-phosphor .rf .dop.down{color:#8ab4ff;}
+  .v-phosphor .note{font-family:var(--mono); font-size:10.5px; line-height:1.55; color:var(--ink-2); margin-top:12px;}
+</style>
+</head>
+<body>
+
+<div class="proto-context">
+  <div class="proto-lead">Prototype · panneau « Passage sélectionné » · rendu à sa largeur réelle, à gauche du tracé polaire</div>
+  <div class="hero-grid">
+    <div id="stage"></div>
+    <div class="proto-neighbour">Trajectoire Az/El</div>
+  </div>
+</div>
+
+<nav class="proto-picker" aria-label="Prototype variants">
+  <span class="proto-picker-highlight" aria-hidden="true"></span>
+  <button class="proto-picker-item" data-active aria-current="true">Cockpit</button>
+  <button class="proto-picker-item">Editorial</button>
+  <button class="proto-picker-item">Phosphor</button>
+  <span class="proto-picker-divider" aria-hidden="true"></span>
+  <button class="proto-picker-item proto-picker-replay" aria-label="Rejouer l'animation (R)">↻</button>
+</nav>
+
+<script>
+var variants = [
+  /* 1 — Cockpit */ function () { return `
+    <div class="v-cockpit">
+      <div class="bar">Passage sélectionné <span class="tag">COMPTE À REBOURS</span></div>
+      <div class="idrow"><span class="sat">SO-50</span><span class="mode">Répéteur FM V/U</span></div>
+      <div class="cd">
+        <div class="num">00:12:47</div>
+        <div class="meta"><b>avant AOS</b>AOS 18:42:05 loc.<br>21° → 154° · 8 min 12 s</div>
+      </div>
+      <div class="facts">
+        <div class="f"><div class="k">Élév. max</div><div class="v good">47°</div></div>
+        <div class="f"><div class="k">Durée</div><div class="v">8:12</div></div>
+        <div class="f"><div class="k">Az AOS→LOS</div><div class="v">21°→154°</div></div>
+        <div class="f"><div class="k">Qualité omni</div><div class="v good">Bonne</div></div>
+      </div>
+      <div class="rf">
+        <div class="c"><div class="k">Uplink · toi → sat</div><div class="big">145.8500</div>
+          <div class="dop up">▲ +1.2 kHz Doppler</div><div class="sub">PL 67.0 Hz</div></div>
+        <div class="c"><div class="k">Downlink · sat → toi</div><div class="big">436.7912</div>
+          <div class="dop down">▼ −9.4 kHz Doppler</div><div class="sub">FM</div></div>
+      </div>
+      <div class="note">Tonalité 74.4 Hz pour maintenir le timer, salve 67.0 Hz pour l'armer. Le plus accessible en omni.</div>
+    </div>`; },
+
+  /* 2 — Editorial */ function () { return `
+    <div class="v-editorial">
+      <div class="eyebrow"><span>Passage sélectionné</span><span class="mode">Répéteur FM V/U</span></div>
+      <div class="sat">SO-50</div>
+      <div class="cd">00:12:47</div>
+      <div class="cdlabel">avant AOS — 18:42:05 loc.</div>
+      <div class="facts">
+        <div><span class="k">Élévation max</span><span class="v good">47°</span></div>
+        <div><span class="k">Durée</span><span class="v">8 min 12 s</span></div>
+        <div><span class="k">Azimut AOS → LOS</span><span class="v">21° → 154°</span></div>
+        <div><span class="k">Qualité omni</span><span class="v good">Bonne</span></div>
+      </div>
+      <div class="freq">
+        <div><div class="k">Uplink — toi → sat</div><div class="v">145.8500</div><div class="d">▲ +1.2 kHz · PL 67.0 Hz</div></div>
+        <div><div class="k">Downlink — sat → toi</div><div class="v">436.7912</div><div class="d">▼ −9.4 kHz · FM</div></div>
+      </div>
+      <div class="note">Tonalité 74.4 Hz pour maintenir le timer, salve 67.0 Hz pour l'armer. Le plus accessible en omni.</div>
+    </div>`; },
+
+  /* 3 — Phosphor */ function () { return `
+    <div class="v-phosphor">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="hd"><span class="dot"></span> Passage sélectionné · compte à rebours</div>
+      <div class="satline"><span class="sat">SO-50</span><span class="tag">Répéteur FM V/U</span><span class="qtag">Qualité : Bonne</span></div>
+      <div class="cd">00<span class="col">:</span>12<span class="col">:</span>47</div>
+      <div class="cdlabel">avant AOS — 18:42:05 loc. · 21° → 154°</div>
+      <div class="facts">
+        <div class="f"><div class="k">Élév. max</div><div class="v">47°</div></div>
+        <div class="f"><div class="k">Durée</div><div class="v">8:12</div></div>
+        <div class="f"><div class="k">Az AOS→LOS</div><div class="v">21°→154°</div></div>
+        <div class="f"><div class="k">Fréq. cœur</div><div class="v">436.79</div></div>
+      </div>
+      <div class="rf">
+        <div class="c"><div class="k">Uplink · toi → sat</div><div class="big">145.8500</div><div class="dop up">▲ +1.2 kHz · PL 67.0</div></div>
+        <div class="c"><div class="k">Downlink · sat → toi</div><div class="big">436.7912</div><div class="dop down">▼ −9.4 kHz · FM</div></div>
+      </div>
+      <div class="note">Tonalité 74.4 Hz pour maintenir le timer, salve 67.0 Hz pour l'armer. Le plus accessible en omni.</div>
+    </div>`; }
+];
+</script>
+<script src="assets/picker.js"></script>
+</body>
+</html>

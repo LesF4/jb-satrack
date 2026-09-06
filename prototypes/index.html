@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototypes de composants — JB-SATRACK</title>
+<link rel="stylesheet" href="assets/tokens.css">
+<style>
+  .wrap{max-width:860px; margin:0 auto; padding:56px clamp(16px,4vw,48px) 80px;}
+  h1{font-family:var(--disp); font-size:22px; letter-spacing:.06em; color:var(--phosphor);
+     text-shadow:0 0 18px rgba(75,227,199,.45); margin:0 0 6px;}
+  .sub{font-family:var(--mono); font-size:12px; color:var(--ink-2); letter-spacing:.04em; margin-bottom:34px; line-height:1.6;}
+  ol{list-style:none; margin:0; padding:0; display:grid; gap:10px;}
+  li a, li span.row{
+    display:flex; align-items:center; gap:14px; text-decoration:none;
+    border:1px solid var(--panel-line); border-radius:10px; padding:14px 16px;
+    background:linear-gradient(180deg, rgba(17,26,44,.6), rgba(11,18,32,.6));
+    font-family:var(--body); color:var(--ink-0);
+  }
+  li a:hover{border-color:var(--phosphor-dim); background:rgba(75,227,199,.05);}
+  li .code{font-family:var(--mono); font-size:12px; color:var(--ink-2); width:18px; flex:none;}
+  li .name{font-size:14px; font-weight:600;}
+  li .desc{font-family:var(--mono); font-size:11px; color:var(--ink-2); margin-left:auto; text-align:right;}
+  li .state{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    border:1px solid var(--panel-line); border-radius:20px; padding:3px 9px; flex:none;}
+  li .state.ready{color:var(--good); border-color:#1f4d38;}
+  li .state.wip{color:var(--ink-2);}
+  li span.row{opacity:.55;}
+  footer{margin-top:34px; font-family:var(--mono); font-size:10.5px; color:var(--ink-2); line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>JB-SATRACK · prototypes de composants</h1>
+  <div class="sub">
+    <b>Commencer par « Direction visuelle »</b> : elle tranche le système (typographie, couleurs,
+    traitement de surface) sur une tranche représentative. Tout le reste en découle.<br><br>
+    Un lien par composant. Chaque page isole le composant dans son contexte réel et propose
+    plusieurs directions derrière un sélecteur (touches <b>1–N</b>, <b>←/→</b> — la navigation boucle, on ne bute jamais —, <b>R</b> pour rejouer).<br>
+    Rien ici ne touche le site : tout est promu manuellement après validation.
+  </div>
+  <ol>
+    <li><a href="direction.html"><span class="code">★</span><span class="name">Direction visuelle</span>
+      <span class="desc">typo · palette · surfaces — sur une tranche réelle</span><span class="state ready">4 directions</span></a></li>
+    <li><a href="esthetiques.html"><span class="code">★</span><span class="name">Esthétiques</span>
+      <span class="desc">5 registres sur la structure figée</span><span class="state ready">5 styles</span></a></li>
+    <li><a href="version.html"><span class="code">★</span><span class="name">Version complète</span>
+      <span class="desc">socle figé · composition du « maintenant »</span><span class="state ready">colonnes ✓</span></a></li>
+    <li><a href="DECISIONS.md"><span class="code">✓</span><span class="name">Décisions</span>
+      <span class="desc">le socle arrêté — seul fichier à conserver</span><span class="state ready">acté</span></a></li>
+    <li><a href="lecture.html"><span class="code">★</span><span class="name">Lecture</span>
+      <span class="desc">par quoi la page s'oriente · structure Mixte actée</span><span class="state ready">focus ✓</span></a></li>
+    <li><a href="structure.html"><span class="code">★</span><span class="name">Structure</span>
+      <span class="desc">quelle part de l'interface mérite un contenant</span><span class="state ready">mixte ✓</span></a></li>
+    <li><a href="carte.html"><span class="code">★</span><span class="name">Moteur de carte</span>
+      <span class="desc">Leaflet vs Leaflet réglé vs MapLibre · mesuré</span><span class="state ready">3 moteurs</span></a></li>
+    <li><a href="passage.html"><span class="code">★</span><span class="name">Passage sélectionné</span>
+      <span class="desc">4 méthodes de hiérarchie · 5 états</span><span class="state ready">4 socles</span></a></li>
+    <li><a href="socle.html"><span class="code">★</span><span class="name">Socle sobre</span>
+      <span class="desc">palette Tailwind · typo · respiration · dose d'accent</span><span class="state wip">superseded</span></a></li>
+    <li><a href="signal-orange.html"><span class="code">★</span><span class="name">Signal · site entier</span>
+      <span class="desc">dose d'orange · carte réelle · icônes</span><span class="state wip">superseded</span></a></li>
+    <li><a href="icones.html"><span class="code">◆</span><span class="name">Inventaire des icônes</span>
+      <span class="desc">Reicon Filled — en service / en réserve</span><span class="state ready">55 en cache</span></a></li>
+    <li><a href="hero.html"><span class="code">D</span><span class="name">Passage sélectionné</span>
+      <span class="desc">→ « Phosphor » promu dans web/</span><span class="state ready">promu ✓</span></a></li>
+    <li><a href="readouts.html"><span class="code">C</span><span class="name">Bandeau télémétrie live</span>
+      <span class="desc">6 cellules sous la carte</span><span class="state ready">3 variantes</span></a></li>
+    <li><span class="row"><span class="code">H</span><span class="name">Tableau des passages</span>
+      <span class="desc">navigation principale</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">F</span><span class="name">Statut ISS</span>
+      <span class="desc">cartes de modes · pastilles</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">A</span><span class="name">En-tête station</span>
+      <span class="desc">indicatif · badges · horloge</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">G</span><span class="name">Plan de tuning Doppler</span>
+      <span class="desc">grille de mémoires · export</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">E</span><span class="name">Tracé polaire Az/El</span>
+      <span class="desc">cône de silence</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">I</span><span class="name">Journal QSO</span>
+      <span class="desc">formulaire · exports</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">B</span><span class="name">Bandeau d'alerte</span>
+      <span class="desc">passages manquants · compte</span><span class="state wip">à venir</span></span></li>
+    <li><span class="row"><span class="code">J</span><span class="name">Bande matériel</span>
+      <span class="desc">3 cartes antenne / TX / interface</span><span class="state wip">à venir</span></span></li>
+  </ol>
+  <footer>
+    Bac à sable jetable — dossier <code>prototypes/</code>. Supprimé une fois toutes les directions choisies et promues.
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype · Suivi — la carte suit le satellite, et le lâche quand on la touche</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/picker.css">
+<link rel="stylesheet" href="../data/vendor/leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* =========================================================================
+   SUIVI — deux modes et la transition entre les deux.
+   Le moteur de carte n'est PAS au sélecteur : c'est la variante 3 de
+   prototypes/carte.html (Leaflet, molette réécrite, noWrap, minZoom calculé,
+   maxBounds, socle maxNativeZoom:3), reprise telle quelle. Ce qui est au
+   sélecteur, c'est la STRATÉGIE DE RECENTRAGE.
+   Tokens : p-neutral de prototypes/version.html, mot pour mot.
+   ========================================================================= */
+.p-neutral{
+  --bg:oklch(14.5% 0 0); --surf:oklch(20.5% 0 0); --surf-2:oklch(26.9% 0 0); --line:oklch(26.9% 0 0);
+  --i0:oklch(98.5% 0 0); --i1:oklch(87% 0 0); --i2:oklch(70.8% 0 0);
+  --acc:oklch(76.9% .188 70.08); --on-acc:oklch(14.5% 0 0);
+  --good:oklch(76.5% .177 163.223); --warn:oklch(82.8% .189 84.429); --bad:oklch(70.4% .191 22.216);
+  --map-void:oklch(18% 0 0); --map-filter:saturate(0) contrast(1.15) brightness(.68) sepia(.4) hue-rotate(-12deg);
+}
+:root{
+  --sans:'Inter', system-ui, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, monospace;
+  --r-surface:10px; --r-field:8px; --r-control:999px;
+  --p1:3px; --p2:6px; --p3:10px; --p4:13px; --p5:18px; --g:20px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0; padding:0;}
+body{background:var(--bg); color:var(--i0); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; font-synthesis:none;}
+.proto-lead{font:11px/1.5 var(--mono); letter-spacing:.06em; color:var(--i2); padding:12px 18px 0;}
+#stage{min-height:100vh;}
+
+.ic{width:1em; height:1em; flex:none; vertical-align:-.14em;}
+.ic path,.ic circle,.ic rect{fill:currentColor;}
+
+/* ------------------------------------------------------------------- scène */
+.sc{padding:14px clamp(12px,2.4vw,32px) 130px; max-width:1560px; margin:0 auto;
+  display:flex; flex-direction:column; gap:var(--g);}
+.framed{background:var(--surf); border-radius:var(--r-surface); box-shadow:0 0 0 1px var(--line);
+  padding:var(--p5); display:flex; flex-direction:column; gap:var(--p4); overflow:hidden;}
+.maphead{display:flex; align-items:center; gap:var(--p4); flex-wrap:wrap;}
+.maphead h1{margin:0; font-size:14px; font-weight:600; letter-spacing:-.01em;
+  display:flex; align-items:center; gap:var(--p2);}
+.maphead h1 .ic{font-size:15px; color:var(--i2);}
+.chip{font-size:11.5px; color:var(--i1); background:var(--surf-2); border-radius:var(--r-control);
+  padding:5px 12px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+.chip .ic{font-size:13px; color:var(--i2);}
+.legend{display:flex; gap:var(--p4); flex-wrap:wrap; margin-left:auto; font-size:11px; color:var(--i2);}
+.legend span{display:flex; align-items:center; gap:5px;}
+.legend i{width:9px; height:3px; border-radius:2px; flex:none;}
+.legend i.dot{width:9px; height:9px; border-radius:50%;}
+.legend i.sq{width:9px; height:9px; border-radius:2px;}
+.axis{font-size:12.5px; line-height:1.6; color:var(--i1); margin:0; max-width:88ch; text-wrap:pretty;}
+.axis b{color:var(--i0); font-weight:600;}
+.axis code{font-family:var(--mono); font-size:11.5px; color:var(--i0);
+  background:var(--surf-2); border-radius:4px; padding:1px 5px;}
+.axis i{color:var(--i0); font-style:italic;}
+
+/* -------------------------------------------------------------- conteneur */
+.mapwrap{position:relative;}
+#map{height:min(64vh,600px); min-height:340px; background:var(--map-void);
+  border-radius:var(--r-field); outline:0;}
+#map:focus-visible{box-shadow:inset 0 0 0 2px var(--i0);}
+.leaflet-tile-pane{filter:var(--map-filter);}
+.leaflet-container{background:var(--map-void); font-family:var(--mono); outline:0;}
+.leaflet-div-icon{background:transparent !important; border:0 !important;}
+.leaflet-control-attribution{background:color-mix(in oklch, var(--bg) 78%, transparent) !important;
+  color:var(--i2) !important; font-family:var(--sans) !important; font-size:10px !important;}
+.leaflet-control-attribution a{color:var(--i1) !important;}
+.m-sat,.m-sta{display:flex; align-items:center; gap:6px; white-space:nowrap; width:max-content; font-family:var(--mono);
+  font-weight:600; font-size:11.5px; letter-spacing:-.02em; color:#fff; pointer-events:none;
+  text-shadow:0 0 3px #000,0 0 3px #000,0 0 7px #000;}
+/* `flex:none` n'est pas décoratif : le divIcon n'a pas d'iconSize, donc son
+   conteneur est en shrink-to-fit et la pastille se réduisait à 0 px de large.
+   Même défaut dans prototypes/carte.html et prototypes/version.html. */
+.m-sat i,.m-sta i{flex:none; width:9px; height:9px; box-shadow:0 0 0 1.5px rgba(0,0,0,.85);}
+.m-sat i{border-radius:50%; background:var(--acc);}
+.m-sta i{border:2px solid #fff;}
+
+/* réticule : le point de consigne du suivi, pas une décoration */
+.reticle{position:absolute; z-index:450; pointer-events:none; transform:translate(-50%,-50%);
+  width:var(--rr,90px); height:var(--rr,90px); border-radius:50%;
+  /* deux tons : le filet clair seul disparaissait sur les tuiles claires */
+  border:1px dashed color-mix(in oklch, var(--i0) 55%, transparent);
+  box-shadow:0 0 0 1px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.35);
+  opacity:0; transition:opacity 160ms ease-out;}
+.reticle::after{content:""; position:absolute; inset:50% auto auto 50%; width:9px; height:9px;
+  margin:-5px 0 0 -5px; border-radius:50%;
+  box-shadow:0 0 0 1px color-mix(in oklch, var(--i0) 65%, transparent), 0 0 0 2px rgba(0,0,0,.35);}
+.mapwrap[data-mode="suivi"] .reticle{opacity:1;}
+
+/* ------------------------------------------------- contrôles sur la carte */
+.zoomctl{position:absolute; top:10px; left:10px; z-index:600; display:flex; flex-direction:column; gap:4px;}
+.zoomctl button{width:32px; height:32px; display:grid; place-items:center;
+  font:500 17px/1 var(--sans); color:var(--i0);
+  background:color-mix(in oklch, var(--surf) 88%, transparent);
+  border:1px solid var(--line); border-radius:var(--r-field); cursor:pointer;
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); touch-action:manipulation;
+  transition-property:background-color; transition-duration:120ms; transition-timing-function:ease-out;}
+.zoomctl button:focus-visible{outline:2px solid var(--i0); outline-offset:2px;}
+@media (pointer:coarse){ .zoomctl button{width:44px; height:44px;} }
+
+/* Le bouton de retour au suivi. Pilule. --acc SEULEMENT quand le suivi est
+   actif : l'accent marque un état, jamais une invitation. En mode libre il
+   redevient neutre et prend un anneau pour se signaler sans crier. */
+.trkbtn{position:absolute; top:10px; right:10px; z-index:600;
+  font-family:var(--sans); font-size:12px; font-weight:500; color:var(--i0);
+  display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+  background:color-mix(in oklch, var(--surf) 90%, transparent);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:0; box-shadow:0 0 0 1px var(--line); border-radius:var(--r-control);
+  padding:8px 15px; cursor:pointer; touch-action:manipulation;
+  transition-property:background-color,color,box-shadow,transform;
+  transition-duration:150ms; transition-timing-function:ease-out;}
+.trkbtn .ic{font-size:14px; color:var(--i2);}
+.trkbtn kbd{font-family:var(--mono); font-size:10px; font-weight:500; color:var(--i2);
+  background:var(--surf-2); border-radius:4px; padding:1px 5px; margin-left:2px;}
+.trkbtn[aria-pressed="true"]{background:var(--acc); color:var(--on-acc); box-shadow:none;}
+.trkbtn[aria-pressed="true"] .ic{color:var(--on-acc);}
+.trkbtn[aria-pressed="true"] kbd{background:color-mix(in oklch, var(--on-acc) 14%, transparent); color:var(--on-acc);}
+.trkbtn[aria-pressed="false"]{box-shadow:0 0 0 1px var(--i2);}
+.trkbtn:active{transform:scale(.96);}
+.trkbtn:focus-visible{outline:2px solid var(--i0); outline-offset:2px;}
+@media (pointer:coarse){ .trkbtn{min-height:44px; padding:0 18px;} }
+@media (hover:hover) and (pointer:fine){
+  .zoomctl button:hover{background:var(--surf-2);}
+  .trkbtn[aria-pressed="false"]:hover{background:var(--surf-2);}
+  .trkbtn[aria-pressed="true"]:hover{background:var(--acc);}
+}
+
+/* ------------------------------------------------------------------- HUD */
+.hud{position:fixed; bottom:74px; left:14px; z-index:2147483645;
+  padding:8px 11px; border-radius:9px; background:rgba(10,10,10,.88);
+  -webkit-backdrop-filter:blur(12px) saturate(1.4); backdrop-filter:blur(12px) saturate(1.4);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08) inset;
+  font:11px/1.45 var(--mono); color:rgba(255,255,255,.85); font-variant-numeric:tabular-nums;
+  display:flex; gap:14px; align-items:baseline; pointer-events:none;}
+.hud b{font-weight:500; color:rgba(255,255,255,.42); font-size:9.5px;
+  letter-spacing:.1em; text-transform:uppercase; margin-right:5px;}
+.hud .on{color:#fbbf24;} .hud .off{color:rgba(255,255,255,.85);} .hud .bad{color:#fb7185;}
+
+/* ------------------------------------------------------ panneau (chrome) */
+.panel{position:fixed; top:14px; right:14px; z-index:2147483646; width:274px;
+  padding:11px 13px 13px; border-radius:12px; background:rgba(10,10,10,.88);
+  -webkit-backdrop-filter:blur(12px) saturate(1.4); backdrop-filter:blur(12px) saturate(1.4);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08) inset, 0 8px 24px rgba(0,0,0,.24);
+  font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:rgba(255,255,255,.82);
+  max-height:calc(100vh - 28px); overflow:auto;}
+.panel summary{cursor:pointer; list-style:none; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color:rgba(255,255,255,.5); font-weight:600; display:flex; align-items:center; gap:7px; margin:0 0 10px;}
+.panel summary::-webkit-details-marker{display:none;}
+.panel summary::before{content:"▾"; font-size:9px;}
+.panel:not([open]) summary{margin:0;}
+.panel:not([open]) summary::before{content:"▸";}
+.panel:not([open]){width:auto; padding:9px 13px;}
+.panel summary:focus-visible{outline:2px solid rgba(255,255,255,.5); outline-offset:3px; border-radius:4px;}
+.panel label{display:block; margin-bottom:10px;}
+.panel .row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; gap:8px;}
+.panel .row b{font-weight:500; font-size:11.5px;}
+.panel .row span{font-family:ui-monospace,monospace; font-size:11px; color:rgba(255,255,255,.55); font-variant-numeric:tabular-nums;}
+.panel label.dim{opacity:.42;}
+.panel input[type=range]{width:100%; margin:0; accent-color:#fff; height:18px;}
+.panel input[type=range]:focus-visible{outline:2px solid rgba(255,255,255,.5); outline-offset:2px;}
+.panel label.chk{display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer;}
+.panel label.chk input{accent-color:#fbbf24; width:15px; height:15px; margin:0;}
+.panel label.chk b{font-weight:500; font-size:11.5px;}
+.panel label.chk input:focus-visible{outline:2px solid rgba(255,255,255,.5); outline-offset:2px;}
+.panel .sep{margin:12px 0 10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.1);
+  font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.38); font-weight:600;}
+.panel .out{margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.1);
+  font-family:ui-monospace,monospace; font-size:10.5px; line-height:1.55;
+  color:rgba(255,255,255,.6); word-break:break-word; user-select:all;}
+.panel .copy{width:100%; margin-top:8px; font:inherit; font-size:11px; padding:6px; border-radius:7px;
+  background:rgba(255,255,255,.12); color:#fff; border:0; cursor:pointer;
+  transition-property:background-color; transition-duration:120ms; transition-timing-function:ease-out;}
+.panel .copy:hover{background:rgba(255,255,255,.2);}
+.panel .copy:focus-visible{outline:2px solid rgba(255,255,255,.5); outline-offset:2px;}
+
+@media (min-width:981px){ .sc{padding-right:304px;} }
+@media (max-width:980px){
+  .panel{position:static; width:auto; margin:12px 18px 0; max-height:none;}
+  .hud{bottom:70px; right:14px; flex-wrap:wrap; gap:6px 12px; font-size:10px;}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+}
+</style>
+</head>
+<body class="p-neutral">
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-Satellite" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.5646 10.4921L21.8315 10.559C23.5658 8.21072 23.3696 4.88427 21.2426 2.75736C19.113 0.627762 15.7809 0.433676 13.4321 2.1751L13.5079 2.43555L13.7924 3.28926L13.7949 3.29636C13.7979 3.30447 13.8034 3.31945 13.8118 3.341C13.8287 3.3841 13.8571 3.45351 13.8996 3.54687C13.9844 3.73354 14.1252 4.01611 14.3409 4.37566C14.772 5.09432 15.504 6.12294 16.6907 7.30957C17.8773 8.49619 18.9059 9.22816 19.6245 9.65926C19.984 9.87495 20.2666 10.0157 20.4533 10.1005C20.5466 10.1429 20.616 10.1714 20.6591 10.1882C20.6806 10.1967 20.6956 10.2022 20.7037 10.2051L20.709 10.207L20.7101 10.2074L21.5646 10.4921ZM13.6577 21.6358L18.5711 12.7917C19.4652 12.5501 20.3143 12.0982 21.0402 11.436L14.969 22.3642C14.7678 22.7263 14.3112 22.8568 13.9491 22.6556C13.587 22.4545 13.4566 21.9979 13.6577 21.6358ZM13.3206 11.7402L16.1698 8.89115C17.2231 9.87143 18.1501 10.5239 18.8529 10.9456C19.0629 11.0716 19.2528 11.1769 19.4198 11.264L18.5711 12.7917C16.7937 13.2721 14.8387 12.9216 13.3206 11.7402ZM12.2599 10.6796C12.412 10.875 12.5778 11.0631 12.7574 11.2426C12.937 11.4223 13.1252 11.5881 13.3206 11.7402L5.53046 19.5303C5.23757 19.8232 4.7627 19.8232 4.4698 19.5303C4.17691 19.2374 4.17691 18.7626 4.46981 18.4697L12.2599 10.6796ZM11.2082 5.42911L12.7361 4.58031C12.8233 4.74737 12.9286 4.93726 13.0546 5.14735C13.4762 5.85016 14.1288 6.7772 15.1091 7.83049L12.2599 10.6796C11.0785 9.16162 10.7279 7.20651 11.2082 5.42911ZM11.2082 5.42911C11.4498 4.53507 11.9017 3.68598 12.5637 2.96011L1.6359 9.03125C1.27381 9.23242 1.14336 9.68902 1.34452 10.0511C1.54569 10.4132 2.00229 10.5436 2.36438 10.3425L11.2082 5.42911Z" fill="currentColor"/></symbol>
+<symbol id="i-Target" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.2479 2C6.30929 2.36618 2.36618 6.30929 2 11.2479H4.98056C5.39592 11.2479 5.73264 11.5846 5.73264 12C5.73264 12.4154 5.39592 12.7521 4.98056 12.7521H2C2.36618 17.6907 6.30929 21.6338 11.2479 22V19.0194C11.2479 18.6041 11.5846 18.2674 12 18.2674C12.4154 18.2674 12.7521 18.6041 12.7521 19.0194V22C17.6907 21.6338 21.6338 17.6907 22 12.7521H19.0194C18.6041 12.7521 18.2674 12.4154 18.2674 12C18.2674 11.5846 18.6041 11.2479 19.0194 11.2479H22C21.6338 6.30929 17.6907 2.36618 12.7521 2V4.98056C12.7521 5.39592 12.4154 5.73264 12 5.73264C11.5846 5.73264 11.2479 5.39592 11.2479 4.98056V2ZM9.24236 12C9.24236 11.5846 9.57908 11.2479 9.99444 11.2479H11.2479V9.99444C11.2479 9.57908 11.5846 9.24236 12 9.24236C12.4154 9.24236 12.7521 9.57908 12.7521 9.99444V11.2479H14.0056C14.4209 11.2479 14.7576 11.5846 14.7576 12C14.7576 12.4154 14.4209 12.7521 14.0056 12.7521H12.7521V14.0056C12.7521 14.4209 12.4154 14.7576 12 14.7576C11.5846 14.7576 11.2479 14.4209 11.2479 14.0056V12.7521H9.99444C9.57908 12.7521 9.24236 12.4154 9.24236 12Z" fill="currentColor"/></symbol>
+<symbol id="i-Route" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.14214 6.14214C8.90356 3.38071 10.2843 2 12 2C13.7157 2 15.0964 3.38071 17.8579 6.14214C20.6193 8.90356 22 10.2843 22 12C22 13.7157 20.6193 15.0964 17.8579 17.8579C15.0964 20.6193 13.7157 22 12 22C10.2843 22 8.90356 20.6193 6.14214 17.8579C3.38071 15.0964 2 13.7157 2 12C2 10.2843 3.38071 8.90356 6.14214 6.14214ZM13.8463 8.45285C13.5441 8.16955 13.0695 8.18486 12.7862 8.48704C12.5029 8.78923 12.5182 9.26386 12.8204 9.54715L14.1034 10.75H10.6667C10.1116 10.75 9.28861 10.9003 8.5804 11.3784C7.83208 11.8835 7.25 12.7345 7.25 14C7.25 14.4142 7.58579 14.75 8 14.75C8.41421 14.75 8.75 14.4142 8.75 14C8.75 13.2655 9.05681 12.8665 9.41961 12.6216C9.8225 12.3497 10.3329 12.25 10.6667 12.25H14.1034L12.8204 13.4528C12.5182 13.7361 12.5029 14.2108 12.7862 14.513C13.0695 14.8151 13.5441 14.8305 13.8463 14.5472L16.513 12.0472C16.6642 11.9054 16.75 11.7073 16.75 11.5C16.75 11.2927 16.6642 11.0946 16.513 10.9528L13.8463 8.45285Z" fill="currentColor"/></symbol>
+<symbol id="i-Radio" viewBox="0 0 24 24"><path d="M15.75 12.25V11.5C15.75 11.0858 15.4142 10.75 15 10.75C14.5858 10.75 14.25 11.0858 14.25 11.5V12.25H7C6.30964 12.25 5.75 11.6904 5.75 11C5.75 10.3096 6.30964 9.75 7 9.75H17C17.6904 9.75 18.25 10.3096 18.25 11C18.25 11.6904 17.6904 12.25 17 12.25H15.75Z" fill="currentColor"/><path d="M6.75 17C6.75 16.5858 7.08579 16.25 7.5 16.25C7.91421 16.25 8.25 16.5858 8.25 17C8.25 17.4142 7.91421 17.75 7.5 17.75C7.08579 17.75 6.75 17.4142 6.75 17Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M15.3195 3.67879C15.6943 3.50242 15.8552 3.05562 15.6788 2.68083C15.5024 2.30604 15.0556 2.14519 14.6808 2.32156L6.76692 6.04575C5.03147 6.13486 3.94566 6.39749 3.17157 7.17157C2 8.34315 2 10.2288 2 14C2 17.7712 2 19.6569 3.17157 20.8284C4.34315 22 6.22876 22 10 22H14C17.7712 22 19.6569 22 20.8284 20.8284C22 19.6569 22 17.7712 22 14C22 10.2288 22 8.34314 20.8284 7.17157C19.6569 6 17.7712 6 14 6H10.387L15.3195 3.67879ZM7 8.25C5.48122 8.25 4.25 9.48122 4.25 11C4.25 12.5188 5.48122 13.75 7 13.75H17C18.5188 13.75 19.75 12.5188 19.75 11C19.75 9.48122 18.5188 8.25 17 8.25H7ZM5.25 17C5.25 15.7574 6.25736 14.75 7.5 14.75C8.74264 14.75 9.75 15.7574 9.75 17C9.75 18.2426 8.74264 19.25 7.5 19.25C6.25736 19.25 5.25 18.2426 5.25 17ZM12.25 17C12.25 16.5858 12.5858 16.25 13 16.25H18C18.4142 16.25 18.75 16.5858 18.75 17C18.75 17.4142 18.4142 17.75 18 17.75H13C12.5858 17.75 12.25 17.4142 12.25 17Z" fill="currentColor"/></symbol>
+</svg>
+
+<div class="proto-lead">Prototype · suivi — la stratégie de recentrage est au sélecteur, ses constantes sont au panneau, les mesures sont en bas à gauche</div>
+<div id="stage"></div>
+
+<div class="hud" id="hud" aria-live="off">
+  <span><b>mode</b><i id="h-mode" class="on">suivi</i></span>
+  <span><b>dérive/centre</b><i id="h-drift">—</i></span>
+  <span><b>écart consigne</b><i id="h-err">—</i></span>
+  <span><b>recentrages/s</b><i id="h-rec">—</i></span>
+  <span><b>ips</b><i id="h-fps">—</i></span>
+  <span><b>zoom</b><i id="h-zoom">—</i></span>
+</div>
+
+<details class="panel" open>
+  <summary>Réglages du suivi</summary>
+
+  <label class="chk"><input type="checkbox" id="trk" checked><b>Suivi actif <span style="opacity:.55">(S)</span></b></label>
+
+  <label id="l-dz"><span class="row"><b>Rayon de zone morte</b><span id="v-dz">90 px</span></span>
+    <input type="range" id="dz" min="0" max="260" step="5" value="90" aria-label="Rayon de la zone morte centrale, en pixels"></label>
+
+  <label id="l-tau"><span class="row"><b>Douceur (τ)</b><span id="v-tau">260 ms</span></span>
+    <input type="range" id="tau" min="30" max="1200" step="10" value="260" aria-label="Constante de temps de l'amortissement, en millisecondes"></label>
+
+  <label id="l-lead"><span class="row"><b>Avance à l'écran</b><span id="v-lead">22 %</span></span>
+    <input type="range" id="lead" min="0" max="40" step="1" value="22" aria-label="Décalage du satellite par rapport au centre, en pourcentage du plus petit côté"></label>
+
+  <div class="sep">Retour au suivi</div>
+  <label><span class="row"><b>Durée du vol</b><span id="v-fly">900 ms</span></span>
+    <input type="range" id="fly" min="0" max="2500" step="50" value="900" aria-label="Durée du vol animé de retour au suivi, en millisecondes"></label>
+
+  <div class="sep">Simulation</div>
+  <label><span class="row"><b>Vitesse du satellite</b><span id="v-spd">60 ×</span></span>
+    <input type="range" id="spd" min="1" max="600" step="1" value="60" aria-label="Accélération du temps simulé"></label>
+  <div class="row" style="margin-bottom:10px;"><b>Zoom minimum</b><span id="v-zmin">—</span></div>
+
+  <div class="out" id="out">—</div>
+  <button class="copy" id="copy" type="button">Copier les valeurs</button>
+</details>
+
+<nav class="proto-picker" aria-label="Stratégie de suivi">
+  <span class="proto-picker-highlight" aria-hidden="true"></span>
+  <button class="proto-picker-item" data-active aria-current="true">Amorti</button>
+  <button class="proto-picker-item">Zone morte</button>
+  <button class="proto-picker-item">Cadrage prospectif</button>
+  <span class="proto-picker-divider" aria-hidden="true"></span>
+  <button class="proto-picker-item proto-picker-replay" aria-label="Rejouer (R)">↻</button>
+</nav>
+
+<script src="../data/vendor/leaflet.js"></script>
+<script>
+/* =========================================================================
+   1. DONNÉES — orbite analytique, reprise mot pour mot de prototypes/carte.html.
+   Inclinaison 51,6°, altitude 420 km, période 93 min. Le temps est simulé :
+   `simNow` avance `spd` fois plus vite que l'horloge, pour voir une orbite
+   entière en quelques secondes.
+   ========================================================================= */
+var D = Math.PI / 180, RE = 6371;
+var ORB = { inc: 51.6 * D, alt: 420, T: 5580, raan: 0.9, minEl: 5 };
+var STA = { lat: 47.7719, lon: 7.3444, call: 'F4MAJ', loc: 'JN37QS' };
+var SAT_NAME = 'AO-91';
+var IMAGERY = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+var LABELS  = 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+var ATTRIB  = 'Esri, Maxar, Earthstar Geographics';
+
+function wrapLon(d) { return ((d + 180) % 360 + 360) % 360 - 180; }
+
+function satAt(ms) {
+  var s = ms / 1000, u = 2 * Math.PI * s / ORB.T;
+  var lat = Math.asin(Math.sin(ORB.inc) * Math.sin(u));
+  var lon = Math.atan2(Math.cos(ORB.inc) * Math.sin(u), Math.cos(u)) + ORB.raan - 2 * Math.PI * s / 86164;
+  return { lat: lat / D, lon: wrapLon(lon / D) };
+}
+
+function subsolar(now) {
+  var d = (now / 86400000) - 10957.5;
+  var g = (357.529 + 0.98560028 * d) * D;
+  var q = 280.459 + 0.98564736 * d;
+  var Lc = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D;
+  var dec = Math.asin(Math.sin(23.439 * D) * Math.sin(Lc)) / D;
+  return { lat: dec, lon: wrapLon(180 - ((now / 3600000) % 24) * 15) };
+}
+function nightPolygon(now) {
+  var s = subsolar(now), dec = s.lat;
+  if (Math.abs(dec) < 0.2) dec = dec < 0 ? -0.2 : 0.2;
+  var decR = dec * D, pts = [];
+  for (var lon = -180; lon <= 180; lon += 6)
+    pts.push([Math.atan(-Math.cos((lon - s.lon) * D) / Math.tan(decR)) / D, lon]);
+  var pole = dec > 0 ? -90 : 90;
+  pts.push([pole, 180], [pole, -180]);
+  return pts;
+}
+
+function splitLine(points) {
+  var segs = [], seg = [];
+  for (var i = 0; i < points.length; i++) {
+    var p = points[i];
+    if (seg.length && Math.abs(p[1] - seg[seg.length - 1][1]) > 180) { segs.push(seg); seg = []; }
+    seg.push(p);
+  }
+  if (seg.length) segs.push(seg);
+  return segs;
+}
+function splitRing(ring) {
+  var segs = [], cur = [];
+  for (var i = 0; i < ring.length; i++) {
+    var p = ring[i];
+    if (cur.length) {
+      var q = cur[cur.length - 1], dl = p[1] - q[1];
+      if (Math.abs(dl) > 180) {
+        var side = dl > 0 ? -180 : 180;
+        var f = (side - q[1]) / ((side - q[1]) + (p[1] + side));
+        var lat = q[0] + (p[0] - q[0]) * f;
+        cur.push([lat, side]); segs.push(cur); cur = [[lat, -side]];
+      }
+    }
+    cur.push(p);
+  }
+  if (cur.length) segs.push(cur);
+  if (segs.length > 1) { segs[0] = segs[segs.length - 1].concat(segs[0]); segs.pop(); }
+  return segs;
+}
+function footprintRing(lat, lon) {
+  var r = RE + ORB.alt, mE = ORB.minEl * D;
+  var cap = Math.PI / 2 - mE - Math.asin((RE / r) * Math.cos(mE));
+  var ring = [], la0 = lat * D, lo0 = lon * D;
+  for (var a = 0; a <= 360; a += 6) {
+    var br = a * D;
+    var la = Math.asin(Math.sin(la0) * Math.cos(cap) + Math.cos(la0) * Math.sin(cap) * Math.cos(br));
+    var lo = lo0 + Math.atan2(Math.sin(br) * Math.sin(cap) * Math.cos(la0),
+                              Math.cos(cap) - Math.sin(la0) * Math.sin(la));
+    ring.push([la / D, wrapLon(lo / D)]);
+  }
+  return ring;
+}
+function audibleAt(st) {
+  var dLat = (st.lat - STA.lat) * D, dLon = (st.lon - STA.lon) * D;
+  var c = 2 * Math.asin(Math.min(1, Math.sqrt(Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(STA.lat * D) * Math.cos(st.lat * D) * Math.sin(dLon / 2) * Math.sin(dLon / 2))));
+  var r = RE + ORB.alt, mE = ORB.minEl * D;
+  return c < Math.PI / 2 - mE - Math.asin((RE / r) * Math.cos(mE));
+}
+
+/* =========================================================================
+   2. STRATÉGIES DE SUIVI — ce qui est au sélecteur.
+   Chacune répond à la même question autrement : où doit se trouver le CENTRE
+   de la carte, sachant où est le satellite ?
+   ========================================================================= */
+var STRATS = [
+  { id: 'amorti', label: 'Amorti',
+    axis: '<b>Axe : douceur contre retard.</b> Le centre est un ressort tiré vers le satellite&nbsp;: à chaque image il en rattrape la fraction <code>1−e<sup>−Δt/τ</sup></code>. Aucun à-coup, jamais de saut — mais la carte glisse en permanence et traîne d’autant plus que τ est grand. Constante&nbsp;: <b>douceur (τ)</b>.' },
+  { id: 'zonemorte', label: 'Zone morte',
+    axis: '<b>Axe : immobilité contre rattrapages.</b> La carte ne bouge pas tant que le satellite reste dans un disque central. Dès qu’il en sort, elle le ramène (même ressort) jusqu’à 20&nbsp;% du rayon, puis se rendort. La solution des jeux vidéo&nbsp;: on lit le texte entre deux rattrapages. Constantes&nbsp;: <b>rayon</b> et <b>douceur</b>.' },
+  { id: 'cadrage', label: 'Cadrage prospectif',
+    axis: '<b>Axe : lisibilité de la trajectoire contre glissement permanent.</b> Le satellite est cloué à un point fixe de l’écran, décalé <i>en arrière de son cap</i> — on voit donc où il va, pas d’où il vient. Verrouillage dur&nbsp;: dérive nulle par construction, mais la carte n’est jamais immobile. Constante&nbsp;: <b>avance à l’écran</b>.' }
+];
+
+/* =========================================================================
+   3. MESURES
+   ========================================================================= */
+var MET = { frames: [], recent: [] };
+function rate(arr, ms) {
+  var t = performance.now();
+  while (arr.length && arr[0] < t - ms) arr.shift();
+  return arr.length * 1000 / ms;
+}
+
+/* =========================================================================
+   4. LA CARTE — variante 3 de prototypes/carte.html, sans rien y changer :
+   molette réécrite (linéaire, ancre figée sur la rafale, facteur de pincement
+   distinct), noWrap, minZoom calculé sur max(largeur,hauteur)/256, maxBounds,
+   socle de tuiles permanent à maxNativeZoom:3.
+   ========================================================================= */
+var reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function anim() { return !reduce.matches; }
+var BOUNDS = [[-85.0511, -180], [85.0511, 180]];
+
+var M = null;   /* l'instance courante — recréée à chaque montage */
+
+function buildMap(el) {
+  var map = L.map(el, {
+    worldCopyJump: false, zoomSnap: 0, zoomDelta: 0.5, wheelPxPerZoomLevel: 250,
+    wheelDebounceTime: 40, scrollWheelZoom: false,   /* molette réécrite ci-dessous */
+    zoomAnimation: anim(), fadeAnimation: anim(),
+    inertiaDeceleration: 2400, maxBoundsViscosity: 1,
+    zoomControl: false, attributionControl: true
+  }).setView([STA.lat, STA.lon], 5);
+  map.setMaxBounds(BOUNDS);
+
+  /* --- molette réécrite (identique à carte.html, variante 3) -------------- */
+  var WH = { px: 250, pinch: 60 };
+  var acc = 0, raf = 0, A = null, P = null, tLast = 0;
+  var flush = function () {
+    raf = 0;
+    if (!acc || !A) return;
+    var z = map.getZoom() + acc; acc = 0;
+    z = Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), z));
+    var half = map.getSize().divideBy(2);
+    map.setView(map.unproject(map.project(A, z).subtract(P).add(half), z), z, { animate: false });
+  };
+  var onWheel = function (e) {
+    e.preventDefault();
+    var t = e.timeStamp || performance.now();
+    var pt = map.mouseEventToContainerPoint(e);
+    if (!A || t - tLast > 250 || Math.abs(pt.x - P.x) > 2 || Math.abs(pt.y - P.y) > 2) {
+      P = pt; A = map.containerPointToLatLng(pt);
+    }
+    tLast = t;
+    var d = e.deltaY;
+    if (e.deltaMode === 1) d *= 16; else if (e.deltaMode === 2) d *= el.clientHeight;
+    acc += -d / (e.ctrlKey ? WH.pinch : WH.px);
+    if (!raf) raf = requestAnimationFrame(flush);
+  };
+  el.addEventListener('wheel', onWheel, { passive: false });
+
+  var TO = { maxZoom: 17, updateWhenZooming: false, updateWhenIdle: false,
+             noWrap: true, bounds: BOUNDS };
+  L.tileLayer(IMAGERY, Object.assign({}, TO, { maxNativeZoom: 3, keepBuffer: 12 })).addTo(map);
+  var imagery = L.tileLayer(IMAGERY, Object.assign({}, TO, { keepBuffer: 4, attribution: ATTRIB })).addTo(map);
+  var labels  = L.tileLayer(LABELS,  Object.assign({}, TO, { keepBuffer: 4 })).addTo(map);
+
+  var night = L.polygon([], { stroke: false, fillColor: '#04080f', fillOpacity: .55, interactive: false }).addTo(map);
+  var foot  = L.polygon([], { color: 'rgba(255,178,58,.6)', weight: 1.5, fillColor: '#ffb23a', fillOpacity: .10, interactive: false }).addTo(map);
+  var past  = L.polyline([], { color: '#e4e4e7', weight: 2, opacity: .35, interactive: false }).addTo(map);
+  var futr  = L.polyline([], { color: '#e4e4e7', weight: 2.5, opacity: .9, interactive: false }).addTo(map);
+  var link  = L.polyline([], { color: '#ffb23a', weight: 1.5, opacity: .75, dashArray: '6,6', interactive: false }).addTo(map);
+  var mSat  = L.marker([0, 0], { keyboard: false, icon: L.divIcon({ className: '', iconAnchor: [5, 10], html: '<div class="m-sat"><i></i>' + SAT_NAME + '</div>' }) }).addTo(map);
+  var mSta  = L.marker([STA.lat, STA.lon], { keyboard: false, icon: L.divIcon({ className: '', iconAnchor: [5, 10], html: '<div class="m-sta"><i></i>' + STA.call + '</div>' }) }).addTo(map);
+
+  function fitMin() {
+    var w = el.clientWidth, h = el.clientHeight;
+    var z = Math.log2(Math.max(w, h) / 256);
+    map.setMinZoom(z);
+    if (map.getZoom() < z) map.setZoom(z, { animate: false });
+    return z;
+  }
+  return { map: map, el: el, fitMin: fitMin, wheelOff: function () { el.removeEventListener('wheel', onWheel, { passive: false }); },
+           night: night, foot: foot, past: past, futr: futr, link: link, mSat: mSat, mSta: mSta };
+}
+
+/* =========================================================================
+   5. LE SUIVI
+
+   --- Distinguer le programmé de l'humain -------------------------------
+   `panBy`/`setView` émettent `movestart`/`move`/`moveend` exactement comme un
+   glissé. Deux réponses possibles :
+     (a) un drapeau posé autour de chaque mouvement programmé ;
+     (b) n'écouter QUE les événements dont l'origine humaine est certaine.
+   On prend (b). Le drapeau (a) doit être juste sur TOUS les chemins qui
+   bougent la carte — setView, panBy, flyTo, l'inertie qui survit au glissé,
+   invalidateSize, le resize, l'animation de zoom — et il suffit d'en oublier
+   un pour que le suivi se coupe tout seul ou ne se coupe jamais. L'ensemble
+   des ENTRÉES humaines, lui, est fermé et court : glissé, molette,
+   double-clic, flèches/±, pincement à deux doigts. On l'énumère une fois.
+
+   Conséquence assumée : les boutons +/− NE coupent PAS le suivi. Ils changent
+   l'échelle, pas le cadrage, et zooment sur le centre — c'est-à-dire sur le
+   satellite. La molette, elle, coupe : son zoom est ancré au curseur, donc
+   c'est un acte de cadrage.
+   ========================================================================= */
+function makeTracker(m) {
+  var map = m.map, el = m.el;
+  var mode = 'suivi', flying = false, catching = false, catchT0 = 0;
+  var resid = L.point(0, 0);          /* panBy arrondit au pixel : on garde le reste */
+  var head = null;                    /* cap lissé, en pixels écran */
+
+  /* --- bornes : on clampe la consigne AVANT de la demander ---------------
+     Sinon, près d'un pôle, on demande un centre que maxBounds refuse : la
+     carte bute, la commande est réémise à l'image suivante, et ça tremble.
+     Ici la consigne est toujours atteignable, donc la boucle converge et
+     s'arrête. La dérive résiduelle affichée est alors la vraie distance
+     satellite→centre que la projection interdit d'annuler. */
+  function clampPx(p, z) {
+    var half = map.getSize().divideBy(2);
+    var nw = map.project(L.latLng(BOUNDS[0][0], BOUNDS[0][1]), z);
+    var se = map.project(L.latLng(BOUNDS[1][0], BOUNDS[1][1]), z);
+    var x0 = Math.min(nw.x, se.x) + half.x, x1 = Math.max(nw.x, se.x) - half.x;
+    var y0 = Math.min(nw.y, se.y) + half.y, y1 = Math.max(nw.y, se.y) - half.y;
+    return L.point(
+      x1 < x0 ? (nw.x + se.x) / 2 : Math.min(Math.max(p.x, x0), x1),
+      y1 < y0 ? (nw.y + se.y) / 2 : Math.min(Math.max(p.y, y0), y1));
+  }
+
+  /* le centre visé, selon la stratégie */
+  function targetPx(z, sim, live) {   /* live=false : lecture seule, le cap lissé n'avance pas */
+    var st = satAt(sim);
+    var p = map.project(L.latLng(st.lat, st.lon), z);
+    if (CUR.id !== 'cadrage') return clampPx(p, z);
+    /* cadrage prospectif : le centre est en avant du satellite, sur son cap */
+    var ahead = satAt(sim + 90000);
+    var q = map.project(L.latLng(ahead.lat, ahead.lon), z);
+    var v = q.subtract(p);
+    var worldW = 256 * Math.pow(2, z);
+    if (Math.abs(v.x) > worldW / 2) v.x -= Math.sign(v.x) * worldW;   /* le cap ne traverse pas le monde */
+    var n = Math.hypot(v.x, v.y) || 1;
+    v = L.point(v.x / n, v.y / n);
+    var h = head ? L.point(head.x + (v.x - head.x) * .08, head.y + (v.y - head.y) * .08) : v;
+    if (live) head = h;
+    var hn = Math.hypot(h.x, h.y) || 1;
+    var lead = P.lead / 100 * Math.min(map.getSize().x, map.getSize().y);
+    return clampPx(p.add(L.point(h.x / hn * lead, h.y / hn * lead)), z);
+  }
+
+  /* --- une image de suivi ------------------------------------------------ */
+  function step(dt, sim) {
+    var z = map.getZoom();
+    var cur = map.project(map.getCenter(), z);
+    var tgt = targetPx(z, sim, true);
+    var d = tgt.subtract(cur);
+
+    /* --- antiméridien ----------------------------------------------------
+       Le satellite passe de +180° à −180°. Avec noWrap il n'y a qu'une seule
+       copie du monde : la cible est donc réellement à l'autre bout de la
+       carte, et aucun glissé ne peut y mener « par le plus court ». Détecté
+       en pixels, pas en degrés : |Δx| > 40 % de la largeur du monde. On
+       téléporte, on remet le ressort et le reste à zéro. */
+    var worldW = 256 * Math.pow(2, z);
+    if (Math.abs(d.x) > worldW * .4) {
+      map.setView(map.unproject(tgt, z), z, { animate: false });
+      resid = L.point(0, 0); catching = false; MET.recent.push(performance.now());
+      return;
+    }
+
+    var drift = Math.hypot(d.x, d.y);
+    var move;
+    if (CUR.id === 'cadrage') {
+      move = d;                                        /* verrouillage dur */
+    } else {
+      if (CUR.id === 'zonemorte') {
+        /* Le rattrapage est BORNÉ DANS LE TEMPS, sinon il ne finit jamais :
+           un suiveur amorti garde en régime établi un retard v·τ (24 px à
+           60×, zoom 5), qui reste au-dessus du seuil de sortie — la zone
+           morte dégénérait alors en recentrage continu, mesuré à 66/s.
+           On sort donc au premier des deux : erreur < 20 % du rayon, ou 3τ
+           écoulés (95 % de la réponse d'un premier ordre). L'alternance
+           immobile / rattrapage redevient réelle et mesurable. */
+        if (!catching && drift > P.dz) { catching = true; catchT0 = performance.now(); }
+        else if (catching && (drift < P.dz * .2 || performance.now() - catchT0 > 3 * P.tau)) catching = false;
+        if (!catching) { resid = L.point(0, 0); return; }
+      }
+      var k = reduce.matches ? 1 : 1 - Math.exp(-dt / Math.max(16, P.tau));
+      move = L.point(d.x * k, d.y * k);
+    }
+    move = move.add(resid);
+    var r = L.point(Math.round(move.x), Math.round(move.y));
+    resid = move.subtract(r);
+    if (!r.x && !r.y) return;
+    map.panBy(r, { animate: false, noMoveStart: true });
+    MET.recent.push(performance.now());
+  }
+
+  /* --- passage en mode libre : une seule porte d'entrée ------------------ */
+  function human() {
+    if (mode === 'libre' && !flying) return;
+    if (flying) { map.stop(); flying = false; }
+    setMode('libre');
+  }
+  var onKey = function (e) {
+    if (/^(ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\+|-|=|_)$/.test(e.key)) human();
+  };
+  var onTouch = function (e) { if (e.touches && e.touches.length > 1) human(); };
+  map.on('dragstart', human);
+  el.addEventListener('wheel', human, { passive: true, capture: true });
+  el.addEventListener('dblclick', human);
+  el.addEventListener('keydown', onKey);
+  el.addEventListener('touchstart', onTouch, { passive: true });
+
+  /* --- retour au suivi --------------------------------------------------- */
+  function resume() {
+    if (mode === 'suivi') return;
+    var z = map.getZoom();
+    /* on vise là où le satellite SERA à l'arrivée, sinon le vol atterrit derrière lui */
+    var sim = simNow() + (reduce.matches ? 0 : P.fly * P.spd);
+    var tgt = map.unproject(targetPx(z, sim, false), z);
+    resid = L.point(0, 0); catching = false;
+    var far = Math.abs(map.project(tgt, z).x - map.project(map.getCenter(), z).x) > 256 * Math.pow(2, z) * .4;
+    if (reduce.matches || !P.fly || far) {        /* antiméridien : on saute, on ne survole pas */
+      map.setView(tgt, z, { animate: false });
+      setMode('suivi');
+    } else {
+      flying = true; setMode('suivi');
+      map.flyTo(tgt, z, { duration: P.fly / 1000 });
+      map.once('moveend', function () { flying = false; });
+    }
+  }
+
+  function setMode(v) {
+    if (mode === v) return;
+    mode = v;
+    if (v === 'libre') { catching = false; resid = L.point(0, 0); }
+    syncMode();
+  }
+
+  return {
+    map: map,
+    step: function (dt, sim) { if (mode === 'suivi' && !flying) step(dt, sim); },
+    resume: resume, human: human,
+    toggle: function () { if (mode === 'suivi') human(); else resume(); },
+    mode: function () { return mode; },
+    drift: function () {          /* satellite ↔ centre de la carte */
+      var q = map.latLngToContainerPoint(map.getCenter());
+      var s = map.latLngToContainerPoint(L.latLng(satLL.lat, satLL.lon));
+      return Math.hypot(s.x - q.x, s.y - q.y);
+    },
+    err: function () {            /* centre ↔ consigne de la stratégie */
+      var z = map.getZoom();
+      var d = targetPx(z, simNow(), false).subtract(map.project(map.getCenter(), z));
+      var w = 256 * Math.pow(2, z);
+      if (Math.abs(d.x) > w * .4) return 0;   /* on est dans la trame du saut */
+      return Math.hypot(d.x, d.y);
+    },
+    destroy: function () {
+      map.off('dragstart', human);
+      el.removeEventListener('wheel', human, { capture: true });
+      el.removeEventListener('dblclick', human);
+      el.removeEventListener('keydown', onKey);
+      el.removeEventListener('touchstart', onTouch);
+    }
+  };
+}
+
+/* =========================================================================
+   6. BOUCLE — une seule rAF pour tout : simulation, surcouches, suivi, HUD.
+   ========================================================================= */
+var CUR = STRATS[0];
+var P = { dz: 90, tau: 260, lead: 22, fly: 900, spd: 60 };
+var TRK = null, raf = 0, t0 = 0, sim0 = 0, tPrev = 0, nFrame = 0;
+var satLL = { lat: 0, lon: 0 };
+function simNow() { return sim0 + (performance.now() - t0) * P.spd; }
+
+function paintSat(sim) {
+  var st = satAt(sim); satLL = st;
+  M.mSat.setLatLng([st.lat, st.lon]);
+  M.foot.setLatLngs(splitRing(footprintRing(st.lat, st.lon)));
+  var aud = audibleAt(st);
+  M.link.setLatLngs(aud ? [[[STA.lat, STA.lon], [st.lat, st.lon]]] : []);
+  M.foot.setStyle(aud ? { color: 'rgba(255,178,58,.65)', fillColor: '#ffb23a', fillOpacity: .13 }
+                      : { color: 'rgba(228,228,231,.45)', fillColor: '#e4e4e7', fillOpacity: .07 });
+}
+function paintSlow(sim) {
+  var past = [], future = [], dt;
+  for (dt = -ORB.T * 1000; dt <= 0; dt += ORB.T * 1000 / 60) { var a = satAt(sim + dt); past.push([a.lat, a.lon]); }
+  for (dt = 0; dt <= ORB.T * 1000; dt += ORB.T * 1000 / 60) { var b = satAt(sim + dt); future.push([b.lat, b.lon]); }
+  M.past.setLatLngs(splitLine(past));
+  M.futr.setLatLngs(splitLine(future));
+  M.night.setLatLngs(nightPolygon(sim));
+}
+
+function loop(ts) {
+  raf = requestAnimationFrame(loop);
+  var dt = tPrev ? ts - tPrev : 16; tPrev = ts;
+  MET.frames.push(ts);
+  var sim = simNow();
+  paintSat(sim);
+  if ((nFrame++ % 4) === 0) paintSlow(sim);
+  TRK.step(dt, sim);
+  if ((nFrame % 12) === 0) hud();
+}
+
+function hud() {
+  var m = TRK.mode();
+  var e = document.getElementById('h-mode');
+  e.textContent = m; e.className = m === 'suivi' ? 'on' : 'off';
+  var d = TRK.drift();
+  var de = document.getElementById('h-drift');
+  de.textContent = Math.round(d) + ' px'; de.className = d > 400 ? 'bad' : '';
+  document.getElementById('h-err').textContent = Math.round(TRK.err()) + ' px';
+  document.getElementById('h-rec').textContent = rate(MET.recent, 1000).toFixed(0);
+  document.getElementById('h-fps').textContent = rate(MET.frames, 1000).toFixed(0);
+  document.getElementById('h-zoom').textContent = TRK.map.getZoom().toFixed(2);
+}
+
+/* état visible du mode : bouton, réticule, interrupteur du panneau */
+function syncMode() {
+  var m = TRK ? TRK.mode() : 'suivi';
+  var b = document.getElementById('trkbtn');
+  if (b) {
+    b.setAttribute('aria-pressed', m === 'suivi' ? 'true' : 'false');
+    b.querySelector('.lbl').textContent = m === 'suivi' ? 'Suivi' : 'Reprendre le suivi';
+  }
+  var w = document.querySelector('.mapwrap');
+  if (w) w.setAttribute('data-mode', m);
+  var c = document.getElementById('trk');
+  if (c) c.checked = (m === 'suivi');
+  hud();
+}
+
+/* =========================================================================
+   7. VARIANTES + MONTAGE
+   ========================================================================= */
+function scene(i) {
+  var s = STRATS[i];
+  return '' +
+  '<div class="sc"><div class="framed">' +
+    '<div class="maphead">' +
+      '<h1><svg class="ic"><use href="#i-Satellite"></use></svg> ' + SAT_NAME + ' — suivi de la carte</h1>' +
+      '<span class="chip"><svg class="ic"><use href="#i-Route"></use></svg>' + s.label + '</span>' +
+      '<span class="chip"><svg class="ic"><use href="#i-Radio"></use></svg>' + STA.call + ' · ' + STA.loc + '</span>' +
+      '<div class="legend">' +
+        '<span><i class="dot" style="background:var(--acc)"></i>Satellite</span>' +
+        '<span><i class="sq" style="border:2px solid #fff"></i>Station</span>' +
+        '<span><i style="background:#e4e4e7"></i>Trace au sol</span>' +
+        '<span><i class="sq" style="background:rgba(255,178,58,.35)"></i>Empreinte</span>' +
+        '<span><i class="sq" style="background:#04080f;box-shadow:0 0 0 1px rgba(255,255,255,.2)"></i>Nuit</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="mapwrap" data-mode="suivi">' +
+      '<div id="map" role="application" tabindex="0" aria-label="Carte du monde — flèches pour se déplacer, plus et moins pour zoomer"></div>' +
+      '<div class="reticle" id="reticle" aria-hidden="true"></div>' +
+      '<div class="zoomctl">' +
+        '<button type="button" id="zi" aria-label="Zoom avant">+</button>' +
+        '<button type="button" id="zo" aria-label="Zoom arrière">−</button>' +
+      '</div>' +
+      '<button type="button" class="trkbtn" id="trkbtn" aria-pressed="true">' +
+        '<svg class="ic"><use href="#i-Target"></use></svg><span class="lbl">Suivi</span><kbd>S</kbd>' +
+      '</button>' +
+    '</div>' +
+    '<p class="axis">' + s.axis + '</p>' +
+  '</div></div>';
+}
+
+var variants = [
+  function () { return scene(0); },
+  function () { return scene(1); },
+  function () { return scene(2); }
+];
+
+function mountMap(i) {
+  if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  if (TRK) { try { TRK.destroy(); } catch (e) {} TRK = null; }
+  if (M) { try { M.wheelOff(); M.map.remove(); } catch (e) {} M = null; }
+  CUR = STRATS[i];
+  MET.frames = []; MET.recent = [];
+  var el = document.getElementById('map');
+  if (!el) return;
+  M = buildMap(el);
+  M.fitMin();
+  TRK = makeTracker(M);
+  t0 = performance.now(); sim0 = Date.now(); tPrev = 0; nFrame = 0;
+  paintSat(simNow()); paintSlow(simNow());
+  /* le premier cadrage est instantané : on n'entre pas dans la page en volant */
+  M.map.setView([satLL.lat, satLL.lon], M.map.getZoom(), { animate: false });
+  document.getElementById('zi').addEventListener('click', function () { M.map.zoomIn(1, { animate: anim() }); });
+  document.getElementById('zo').addEventListener('click', function () { M.map.zoomOut(1, { animate: anim() }); });
+  document.getElementById('trkbtn').addEventListener('click', function () { TRK.toggle(); });
+  applyPanel();
+  syncMode();
+  raf = requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', function () { if (M) { M.map.invalidateSize(); M.fitMin(); applyPanel(); } });
+
+/* raccourci clavier : S. Les chiffres, flèches et R appartiennent au sélecteur. */
+document.addEventListener('keydown', function (e) {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 's' || e.key === 'S') { e.preventDefault(); if (TRK) TRK.toggle(); }
+});
+
+/* --------------------------------------------------------------- panneau */
+function n(id) { return +document.getElementById(id).value; }
+function applyPanel() {
+  P.dz = n('dz'); P.tau = n('tau'); P.lead = n('lead'); P.fly = n('fly'); P.spd = n('spd');
+  document.getElementById('v-dz').textContent = P.dz + ' px';
+  document.getElementById('v-tau').textContent = P.tau + ' ms';
+  document.getElementById('v-lead').textContent = P.lead + ' %';
+  document.getElementById('v-fly').textContent = P.fly ? P.fly + ' ms' : 'instantané';
+  document.getElementById('v-spd').textContent = P.spd + ' ×';
+  /* les constantes que la stratégie courante n'emploie pas sont estompées */
+  document.getElementById('l-dz').className = CUR.id === 'zonemorte' ? '' : 'dim';
+  document.getElementById('l-tau').className = CUR.id === 'cadrage' ? 'dim' : '';
+  document.getElementById('l-lead').className = CUR.id === 'cadrage' ? '' : 'dim';
+  var r = document.getElementById('reticle');
+  if (r) {
+    /* le réticule matérialise la consigne : le disque mort pour « zone morte »,
+       un simple point de centre pour « amorti ». Le cadrage prospectif n'en a
+       pas : sa consigne, c'est le satellite lui-même. */
+    r.hidden = (CUR.id === 'cadrage');
+    r.style.setProperty('--rr', (CUR.id === 'zonemorte' ? P.dz * 2 : 24) + 'px');
+  }
+  if (M) {
+    var zmin = M.map.getMinZoom();
+    document.getElementById('v-zmin').textContent = isFinite(zmin) ? zmin.toFixed(2) + ' (calculé)' : '—';
+    if (r) { var sz = M.map.getSize(); r.style.left = (sz.x / 2) + 'px'; r.style.top = (sz.y / 2) + 'px'; }
+  }
+  document.getElementById('out').textContent =
+    'stratégie: ' + CUR.id +
+    ' · zone morte: ' + P.dz + ' px' +
+    ' · douceur τ: ' + P.tau + ' ms' +
+    ' · avance: ' + P.lead + ' %' +
+    ' · vol de retour: ' + (P.fly ? P.fly + ' ms' : 'instantané') +
+    ' · vitesse simulée: ' + P.spd + ' ×' +
+    ' · coupure du suivi: dragstart|wheel|dblclick|flèches ±|pincement' +
+    ' · antiméridien: saut si |Δx| > 0,4 × largeur du monde' +
+    ' · bornes: consigne clampée avant demande';
+}
+['dz', 'tau', 'lead', 'fly', 'spd'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', applyPanel);
+});
+document.getElementById('trk').addEventListener('change', function (e) {
+  if (!TRK) return;
+  if (e.target.checked) TRK.resume(); else TRK.human();
+  syncMode();
+});
+document.getElementById('copy').addEventListener('click', function (e) {
+  var t = document.getElementById('out').textContent;
+  if (navigator.clipboard) navigator.clipboard.writeText(t);
+  e.target.textContent = 'Copié ✓';
+  setTimeout(function () { e.target.textContent = 'Copier les valeurs'; }, 1500);
+});
+
+/* ------------------------------------------------- sonde de mesure (Playwright) */
+window.__mes = {
+  ready: function () { return !!TRK && !!M && isFinite(M.map.getZoom()); },
+  strat: function () { return CUR.id; },
+  mode: function () { return TRK.mode(); },
+  drift: function () { return TRK.drift(); },
+  set: function (id, v) {
+    var el = document.getElementById(id);
+    if (el.type === 'checkbox') { el.checked = !!v; el.dispatchEvent(new Event('change')); }
+    else { el.value = v; applyPanel(); }
+  },
+  reset: function () { MET.frames = []; MET.recent = []; },
+  read: function () {
+    return { mode: TRK.mode(), strat: CUR.id, drift: TRK.drift(), err: TRK.err(),
+             rec: rate(MET.recent, 1000), fps: rate(MET.frames, 1000),
+             zoom: M.map.getZoom(), center: [M.map.getCenter().lat, M.map.getCenter().lng],
+             sat: [satLL.lat, satLL.lon] };
+  },
+  zoom: function (z) { M.map.setZoom(z, { animate: false }); },
+  simJump: function (ms) { sim0 += ms; }
+};
+</script>
+<script src="assets/picker.js"></script>
+<script>
+mount = function (i) {
+  stage.innerHTML = '';
+  requestAnimationFrame(function () { stage.innerHTML = variants[i](); mountMap(i); });
+};
+mount(current);
+</script>
+</body>
+</html>
