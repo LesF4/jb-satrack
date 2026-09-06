@@ -9,4 +9,6 @@ __pycache__/
 build/
 dist/
 *.spec
-!packaging/jb-satrack.spec   # celui-ci est de la config écrite à la main, on le versionne
+# packaging/jb-satrack.spec est de la config écrite à la main : on le versionne.
+# (les commentaires en fin de ligne ne marchent PAS dans .gitignore)
+!packaging/jb-satrack.spec
