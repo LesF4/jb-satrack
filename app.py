@@ -16,9 +16,12 @@ Le serveur :
 """
 
 import argparse
+import copy
+import hashlib
 import json
 import os
 import re
+import shutil
 import ssl
 import sys
 import threading
@@ -30,9 +33,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 if getattr(sys, "frozen", False):
     # exécutable PyInstaller : ressources embarquées (lecture seule) dans le
-    # dossier temporaire d'extraction, données persistantes à côté du .exe
+    # dossier temporaire d'extraction ; données persistantes ailleurs.
     BUNDLE = sys._MEIPASS
-    ROOT = os.path.dirname(sys.executable)
+    _exe_dir = os.path.dirname(sys.executable)
+    _portable = os.path.join(_exe_dir, "data")
+    if os.path.isdir(_portable) and os.access(_portable, os.W_OK):
+        # mode "portable" : un dossier data/ inscriptible est posé à côté du .exe
+        # (clé USB, dossier perso) -> tout reste groupé, rien dans le profil.
+        ROOT = _exe_dir
+    else:
+        # installé (p. ex. sous C:\Program Files, non inscriptible) : profil user.
+        ROOT = os.path.join(os.environ.get("LOCALAPPDATA")
+                            or os.path.join(os.path.expanduser("~"), ".local", "share"),
+                            "JB-SATRACK")
+    os.environ.setdefault("JB_SATRACK_DATA", ROOT)   # visible dans les logs / debug
 else:
     BUNDLE = ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -41,11 +55,28 @@ SEED = os.path.join(BUNDLE, "data")      # catalogue satellites + TLE de secours
 DATA = os.path.join(ROOT, "data")        # station.json, qso.json, caches, vendor/ : persistants
 VENDOR = os.path.join(DATA, "vendor")
 
+# Certaines sources filtrent selon le User-Agent : un client qui ne se présente
+# pas comme un navigateur peut recevoir un 403. On se présente comme Chrome,
+# comme pour Google Fonts (voir FONTS_UA plus bas).
+TLE_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+# PLUSIEURS sources indépendantes, TOUTES fusionnées (dédoublées par NORAD, la 1re
+# source qui fournit un satellite gagne) — l'objectif est la couverture LA PLUS
+# LARGE possible du segment radioamateur + ISS.
+#   - AMSAT nasabare : liste radioamateur canonique, curatée, MAJ quotidienne.
+#   - SatNOGS DB     : base de la communauté (>1600 objets), JSON, sans clé.
+#   - R4UAB          : redondance, large.
+#   - CelesTrak      : souvent injoignable depuis une box FAI (blocage réseau) ;
+#                      tenté seulement si les autres ont peu donné.
 TLE_SOURCES = [
-    ("amateur", "https://celestrak.org/NORAD/elements/gp.php?GROUP=amateur&FORMAT=tle"),
-    ("stations", "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle"),
+    "https://www.amsat.org/tle/current/nasabare.txt",
+    "https://db.satnogs.org/api/tle/?format=json",
+    "https://r4uab.ru/satonline.txt",
+    "https://celestrak.org/NORAD/elements/gp.php?GROUP=amateur&FORMAT=tle",
+    "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
 ]
-TLE_MAX_AGE = 3600              # 1 h — rafraîchissement automatique
+TLE_MIN_OK = 50                # en-dessous, on tente aussi CelesTrak (repli)
+TLE_MAX_AGE = 3600            # 1 h — rafraîchissement automatique
 TLE_CACHE = os.path.join(DATA, "tle_cache.json")
 TLE_FALLBACK = os.path.join(SEED, "tle_fallback.txt")
 
@@ -73,23 +104,53 @@ LEAFLET_CSS_URLS = [
 LEAFLET_JS_FILE = os.path.join(VENDOR, "leaflet.js")
 LEAFLET_CSS_FILE = os.path.join(VENDOR, "leaflet.css")
 
+# banque d'icônes : Reicon (https://reicon.dev), graisse Filled, licence MIT.
+# Chaque icône est récupérée à l'unité depuis le paquet npm « reicon », son
+# tracé Filled est extrait et mis en cache en SVG local dans data/vendor/icons/.
+REICON_VERSION = "1.2.4"
+REICON_ICON_SOURCES = [
+    "https://cdn.jsdelivr.net/npm/reicon@%s/icons/%s.js",
+    "https://unpkg.com/reicon@%s/icons/%s.js",
+]
+ICONS_DIR = os.path.join(VENDOR, "icons")
+_ICON_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]{0,63}$")
+
+# polices : Inter (les mots) + JetBrains Mono (les nombres), socle visuel arrêté.
+# L'exécutable Windows tourne hors ligne : un lien vers fonts.googleapis.com lui
+# ferait perdre sa typographie alors que tout le reste est déjà en cache local.
+# On demande donc une fois la feuille css2, on télécharge les woff2 et on réécrit
+# les src: vers /vendor/font/… — même schéma que Leaflet et les icônes Reicon.
+FONTS_CSS_URL = ("https://fonts.googleapis.com/css2"
+                 "?family=Inter:wght@400;500;600;700"
+                 "&family=JetBrains+Mono:wght@400;500;700"
+                 "&display=swap")
+# Google sert du woff/ttf aux User-Agent qu'il ne reconnaît pas : il faut celui
+# d'un navigateur récent pour obtenir du woff2.
+FONTS_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+FONTS_SUBSETS = ("latin", "latin-ext")   # français : accents, œ, guillemets, ’ et −
+FONTS_DIR = os.path.join(VENDOR, "fonts")
+FONTS_CSS_FILE = os.path.join(VENDOR, "fonts.css")
+_FONT_FILE_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}\.woff2$")
+
 # météo autour de la station (Open-Meteo — gratuit, sans clé)
 WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 WEATHER_CACHE = os.path.join(DATA, "weather_cache.json")
 WEATHER_MAX_AGE = 1800           # 30 min
 
+# code météo OMM -> (libellé, nom d'icône Reicon Filled — voir web/icons.js)
 WMO = {
-    0: ("Ciel dégagé", "☀️"), 1: ("Généralement dégagé", "🌤"), 2: ("Partiellement nuageux", "⛅"),
-    3: ("Couvert", "☁️"),
-    45: ("Brouillard", "🌫"), 48: ("Brouillard givrant", "🌫"),
-    51: ("Bruine légère", "🌦"), 53: ("Bruine", "🌦"), 55: ("Bruine forte", "🌦"),
-    56: ("Bruine verglaçante", "🌧"), 57: ("Bruine verglaçante forte", "🌧"),
-    61: ("Pluie légère", "🌧"), 63: ("Pluie", "🌧"), 65: ("Pluie forte", "🌧"),
-    66: ("Pluie verglaçante", "🌧"), 67: ("Pluie verglaçante forte", "🌧"),
-    71: ("Neige légère", "🌨"), 73: ("Neige", "🌨"), 75: ("Neige forte", "🌨"), 77: ("Neige en grains", "🌨"),
-    80: ("Averses légères", "🌦"), 81: ("Averses", "🌧"), 82: ("Averses violentes", "⛈"),
-    85: ("Averses de neige", "🌨"), 86: ("Averses de neige fortes", "🌨"),
-    95: ("Orage", "⛈"), 96: ("Orage + grêle", "⛈"), 99: ("Orage violent + grêle", "⛈"),
+    0: ("Ciel dégagé", "Sun"), 1: ("Généralement dégagé", "CloudSun"),
+    2: ("Partiellement nuageux", "CloudSun"), 3: ("Couvert", "Cloud"),
+    45: ("Brouillard", "CloudFog"), 48: ("Brouillard givrant", "CloudFog"),
+    51: ("Bruine légère", "CloudDrizzle"), 53: ("Bruine", "CloudDrizzle"), 55: ("Bruine forte", "CloudDrizzle"),
+    56: ("Bruine verglaçante", "CloudDrizzle"), 57: ("Bruine verglaçante forte", "CloudDrizzle"),
+    61: ("Pluie légère", "CloudRain"), 63: ("Pluie", "CloudRain"), 65: ("Pluie forte", "CloudRain"),
+    66: ("Pluie verglaçante", "CloudRain"), 67: ("Pluie verglaçante forte", "CloudRain"),
+    71: ("Neige légère", "CloudSnow"), 73: ("Neige", "CloudSnow"), 75: ("Neige forte", "CloudSnow"), 77: ("Neige en grains", "CloudSnow"),
+    80: ("Averses légères", "CloudRain"), 81: ("Averses", "CloudRain"), 82: ("Averses violentes", "CloudBolt"),
+    85: ("Averses de neige", "CloudSnow"), 86: ("Averses de neige fortes", "CloudSnow"),
+    95: ("Orage", "CloudLightning"), 96: ("Orage + grêle", "CloudStorm"), 99: ("Orage violent + grêle", "CloudStorm"),
 }
 
 STATION_FILE = os.path.join(DATA, "station.json")
@@ -111,6 +172,11 @@ DEFAULT_STATION = {
     "horizon_deg": 0,
     "timezone": "Europe/Paris",
     "forecast_hours": 48,
+    # Alerte avant passage. Le seuil est VOLONTAIREMENT plus haut que
+    # min_elevation_deg : un passage à 6° mérite d'être listé, pas de faire
+    # sonner une notification. Le troisième seuil écarte les passages qui
+    # culminent dans le cône de silence de l'antenne.
+    "alert": {"lead_min": 10, "min_elevation_deg": 20, "skip_zenith": True},
     "configured": False    # bascule à True une fois l'assistant de configuration passé
 }
 
@@ -138,11 +204,30 @@ def write_json(path, obj):
     os.replace(tmp, path)
 
 
-def http_get(url, timeout=25):
+def deep_merge(base, patch):
+    """Fusion récursive d'un patch partiel dans une config.
+
+    `dict.update()` remplace un sous-dictionnaire en bloc : un patch
+    {"antenna": {"type": "yagi"}} emporterait height_m, rotor et
+    cone_of_silence_deg avec lui. La configuration de station est imbriquée
+    (antenna, rig), donc la fusion doit l'être aussi."""
+    for k, v in patch.items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            deep_merge(base[k], v)
+        else:
+            base[k] = v
+    return base
+
+
+def http_get_bytes(url, timeout=25, ua="jb-satrack/1.0 (F4MAJ)"):
     ctx = ssl.create_default_context()
-    req = urllib.request.Request(url, headers={"User-Agent": "jb-satrack/1.0 (F4MAJ)"})
+    req = urllib.request.Request(url, headers={"User-Agent": ua})
     with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
-        return r.read().decode("utf-8", "replace")
+        return r.read()
+
+
+def http_get(url, timeout=25, ua="jb-satrack/1.0 (F4MAJ)"):
+    return http_get_bytes(url, timeout, ua).decode("utf-8", "replace")
 
 
 # ------------------------------------------------------------------------ TLE
@@ -158,11 +243,85 @@ def parse_tle(text):
             m = re.match(r"1 (\d+)", l1)
             if m:
                 norad = int(m.group(1))
-            out[name.strip()] = {"name": name.strip(), "l1": l1, "l2": l2, "norad": norad}
+            name = re.sub(r"^0 +", "", name.strip())   # certains flux gardent le préfixe 3LE « 0 »
+            out[name] = {"name": name, "l1": l1, "l2": l2, "norad": norad}
             i += 3
         else:
             i += 1
     return out
+
+
+def _parse_satnogs(text):
+    """JSON SatNOGS DB [{tle0,tle1,tle2,norad_cat_id}, …] -> même forme que parse_tle."""
+    out = {}
+    for e in json.loads(text):
+        l1, l2 = (e.get("tle1") or "").strip(), (e.get("tle2") or "").strip()
+        if not (l1.startswith("1 ") and l2.startswith("2 ")):
+            continue
+        name = re.sub(r"^0 +", "", (e.get("tle0") or "").strip()) or ("NORAD %s" % e.get("norad_cat_id"))
+        nd = e.get("norad_cat_id")
+        try:
+            nd = int(nd)
+        except (TypeError, ValueError):
+            m = re.match(r"1 (\d+)", l1)
+            nd = int(m.group(1)) if m else None
+        out[name] = {"name": name, "l1": l1, "l2": l2, "norad": nd}
+    return out
+
+
+def _parse_tle_any(url, text):
+    return _parse_satnogs(text) if "format=json" in url or url.endswith(".json") else parse_tle(text)
+
+
+def _tle_epoch(l1):
+    """Instant de l'époque du TLE, en secondes Unix (0 si illisible). Sert à
+    garder, pour chaque satellite, l'orbite LA PLUS RÉCENTE quand plusieurs
+    sources le fournissent — c'est ça qui garantit une position juste."""
+    m = re.match(r"1 +\d+\w? +\S+ +(\d\d)(\d{3}\.\d+)", l1)
+    if not m:
+        return 0.0
+    year = 2000 + int(m.group(1))
+    jan1 = datetime(year, 1, 1, tzinfo=timezone.utc).timestamp()
+    return jan1 + (float(m.group(2)) - 1.0) * 86400.0
+
+
+def _tle_response(cache):
+    """Forme JSON commune à /api/tle et /api/tle/refresh."""
+    fetched = cache.get("fetched_at", 0)
+    return {
+        "fetched_at": fetched,
+        "age_s": int(time.time() - fetched) if fetched else None,
+        "count": len(cache.get("sats", {})),
+        "stale": bool(cache.get("stale") or cache.get("fallback")),
+        "errors": cache.get("errors", []),
+        "sats": cache.get("sats", {}),
+    }
+
+
+_tle_bg = {"running": False}
+
+
+def _tle_refresh_async():
+    """Lance un refresh_tle(force) en tâche de fond, une seule à la fois.
+    Sert à /api/tle : la page ne doit jamais attendre le réseau au chargement."""
+    if _tle_bg["running"]:
+        return
+    _tle_bg["running"] = True
+
+    def run():
+        try:
+            refresh_tle(force=True)
+        except Exception as e:
+            log("refresh TLE en fond : %s" % e)
+        finally:
+            _tle_bg["running"] = False
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def _tle_host(url):
+    m = re.match(r"https?://([^/]+)", url)
+    return m.group(1) if m else url
 
 
 def refresh_tle(force=False):
@@ -171,18 +330,34 @@ def refresh_tle(force=False):
     if cache.get("sats") and age < TLE_MAX_AGE and not force:
         return cache
 
-    merged, errors = {}, []
-    for group, url in TLE_SOURCES:
+    # pool : clé = NORAD (ou nom si pas de NORAD) -> enregistrement TLE le plus
+    # récent vu jusqu'ici, toutes sources confondues.
+    pool, errors = {}, []
+    for url in TLE_SOURCES:
+        # CelesTrak (souvent injoignable, 12 s de timeout) n'est tenté que si les
+        # sources principales n'ont presque rien donné.
+        if "celestrak" in url and len(pool) >= TLE_MIN_OK:
+            continue
         try:
-            txt = http_get(url)
-            got = parse_tle(txt)
+            got = _parse_tle_any(url, http_get(url, timeout=12, ua=TLE_UA))
             if not got:
                 raise ValueError("réponse vide ou illisible")
-            merged.update(got)
-            log("TLE %s : %d satellites" % (group, len(got)))
+            kept = 0
+            for rec in got.values():
+                rec["epoch"] = _tle_epoch(rec["l1"])
+                k = rec["norad"] if rec.get("norad") is not None else rec["name"]
+                if k not in pool or rec["epoch"] > pool[k]["epoch"]:
+                    pool[k] = rec
+                    kept += 1
+            log("TLE %s : %d reçus, %d retenus (plus frais) — %d au total"
+                % (_tle_host(url), len(got), kept, len(pool)))
         except Exception as e:
-            errors.append("%s: %s" % (group, e))
-            log("TLE %s ÉCHEC : %s" % (group, e))
+            errors.append("%s: %s" % (_tle_host(url), e))
+            log("TLE %s ÉCHEC : %s" % (_tle_host(url), e))
+
+    merged = {r["name"]: {"name": r["name"], "l1": r["l1"], "l2": r["l2"],
+                          "norad": r.get("norad")}
+              for r in pool.values()}
 
     if not merged:
         # repli : dernier cache, sinon fichier embarqué
@@ -224,7 +399,7 @@ def tle_worker():
 WEATHER_SOON_HOURS = 3     # échéance du 2e pictogramme, affiché seulement si ça change
 
 def _wx_point(code, temp):
-    label, icon = WMO.get(code, ("Inconnu", "❓"))
+    label, icon = WMO.get(code, ("Inconnu", "Cloud"))
     return {"code": code, "icon": icon, "label": label, "temp": temp}
 
 
@@ -420,6 +595,99 @@ def ensure_leaflet_css():
     return _ensure_vendor_file(LEAFLET_CSS_FILE, LEAFLET_CSS_URLS, ".leaflet-")
 
 
+# ------------------------------------------------------- polices woff2
+def ensure_fonts():
+    """Récupère la feuille Google Fonts, télécharge les woff2 latin/latin-ext dans
+    data/vendor/fonts/ et écrit data/vendor/fonts.css avec des src: locaux.
+    Retourne False si le réseau manque : l'interface tombe alors sur la pile système."""
+    if os.path.exists(FONTS_CSS_FILE) and os.path.getsize(FONTS_CSS_FILE) > 400:
+        return True
+    try:
+        css = http_get_bytes(FONTS_CSS_URL, timeout=30, ua=FONTS_UA).decode("utf-8", "replace")
+    except Exception as e:
+        log("polices échec %s : %s" % (FONTS_CSS_URL, e))
+        return False
+    os.makedirs(FONTS_DIR, exist_ok=True)
+    blocks = []
+    # chaque @font-face de css2 est précédé du commentaire nommant son sous-ensemble
+    for subset, block in re.findall(r"/\*\s*([\w-]+)\s*\*/\s*@font-face\s*\{(.*?)\}", css, re.S):
+        if subset not in FONTS_SUBSETS:
+            continue
+        src = re.search(r"url\((https://fonts\.gstatic\.com/[^)]+\.woff2)\)", block)
+        family = re.search(r"font-family:\s*['\"]?([^;'\"]+)", block)
+        if not (src and family):
+            continue
+        # Inter et JetBrains Mono sont des polices variables : les quatre graisses
+        # pointent sur le même woff2. Nommer d'après l'URL (8 hex) au lieu de la
+        # graisse évite d'en stocker quatre copies identiques.
+        name = "%s-%s-%s.woff2" % (family.group(1).strip().replace(" ", ""), subset,
+                                   hashlib.sha1(src.group(1).encode()).hexdigest()[:8])
+        dest = os.path.join(FONTS_DIR, name)
+        if not (os.path.exists(dest) and os.path.getsize(dest) > 500):
+            try:
+                data = http_get_bytes(src.group(1), timeout=30, ua=FONTS_UA)
+            except Exception as e:
+                log("police %s échec : %s" % (name, e))
+                return False
+            if not data.startswith(b"wOF2"):
+                log("police %s : le serveur n'a pas renvoyé du woff2" % name)
+                return False
+            with open(dest, "wb") as f:
+                f.write(data)
+        # bloc conservé tel quel (font-weight, font-style, font-display, unicode-range),
+        # seule l'URL gstatic devient un chemin local
+        blocks.append("/* %s */\n@font-face {%s}" % (
+            subset, block.replace(src.group(0), "url(/vendor/font/%s)" % name)))
+    if not blocks:
+        log("polices : aucune @font-face exploitable dans la feuille css2")
+        return False
+    with open(FONTS_CSS_FILE, "w", encoding="utf-8") as f:
+        f.write("/* JB-SATRACK — polices vendorisées (Inter + JetBrains Mono, "
+                "sous-ensembles latin et latin-ext). Généré par app.py, ne pas éditer. */\n"
+                + "\n".join(blocks) + "\n")
+    log("polices vendorisées : %d fichiers woff2" % len(blocks))
+    return True
+
+
+# --------------------------------------------------------- icônes Reicon
+def _extract_icon_body(mod_js):
+    """Isole le gabarit SVG interne d'un module Reicon — graisse Filled ('F')
+    de préférence, Outline ('O') en repli."""
+    frag = mod_js.split("createIcon(", 1)[-1]
+    for key in ("F", "O"):
+        m = re.search(r"(?<![A-Za-z0-9_])" + key + r"\s*:\s*`(.*?)`", frag, re.S)
+        if m and m.group(1).strip():
+            return m.group(1).strip()
+    return None
+
+
+def ensure_icon(name):
+    """Récupère une icône Reicon (Filled) et la met en cache en SVG local.
+    Retourne le chemin du .svg, ou None si le nom est invalide / indisponible."""
+    if not _ICON_NAME_RE.match(name or ""):
+        return None
+    dest = os.path.join(ICONS_DIR, name + ".svg")
+    if os.path.exists(dest) and os.path.getsize(dest) > 80:
+        return dest
+    os.makedirs(ICONS_DIR, exist_ok=True)
+    for tpl in REICON_ICON_SOURCES:
+        url = tpl % (REICON_VERSION, name)
+        try:
+            body = _extract_icon_body(http_get(url, timeout=20))
+        except Exception as e:
+            log("icône %s échec %s : %s" % (name, url, e))
+            continue
+        if not body:
+            continue
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+               'fill="none" width="24" height="24">' + body + '</svg>\n')
+        with open(dest, "w", encoding="utf-8") as f:
+            f.write(svg)
+        log("icône Reicon mise en cache : %s" % name)
+        return dest
+    return None
+
+
 # ------------------------------------------------------------------- journal
 def adif(qsos, station):
     def field(tag, val):
@@ -482,25 +750,37 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
 
         if path == "/api/station":
-            return self.send(200, read_json(STATION_FILE, DEFAULT_STATION))
+            # Le fichier sur disque est PARTIEL par construction : il a été écrit
+            # par une version antérieure qui ne connaissait pas les clés ajoutées
+            # depuis. On sert donc les valeurs par défaut recouvertes par le
+            # fichier, plutôt que le fichier seul — sinon le client doit se
+            # défendre contre une clé manquante à chaque lecture.
+            return self.send(200, deep_merge(copy.deepcopy(DEFAULT_STATION),
+                                             read_json(STATION_FILE, {})))
 
         if path == "/api/satellites":
             return self.send(200, read_json(SATS_FILE, {"satellites": []}))
 
         if path == "/api/tle":
-            cache = refresh_tle()
-            return self.send(200, {
-                "fetched_at": cache.get("fetched_at", 0),
-                "age_s": int(time.time() - cache.get("fetched_at", 0)) if cache.get("fetched_at") else None,
-                "count": len(cache.get("sats", {})),
-                "stale": bool(cache.get("stale") or cache.get("fallback")),
-                "errors": cache.get("errors", []),
-                "sats": cache.get("sats", {}),
-            })
+            # La page ne doit JAMAIS attendre le réseau au chargement. Si un
+            # cache existe mais a vieilli, on le sert tel quel (marqué stale) et
+            # on rafraîchit en fond ; le worker et le bouton « Rafraîchir »
+            # feront le reste. Cache absent (1re exécution sans le fichier livré)
+            # : là il faut bien attendre une première récupération.
+            cache = read_json(TLE_CACHE, {})
+            if cache.get("sats"):
+                if time.time() - cache.get("fetched_at", 0) >= TLE_MAX_AGE:
+                    cache["stale"] = True
+                    _tle_refresh_async()
+            else:
+                cache = refresh_tle()
+            return self.send(200, _tle_response(cache))
 
         if path == "/api/tle/refresh":
-            cache = refresh_tle(force=True)
-            return self.send(200, {"count": len(cache.get("sats", {})), "errors": cache.get("errors", [])})
+            # bloquant et forcé : c'est l'action explicite du bouton. Le client
+            # remplace S.tleInfo avec la réponse ; un échec y ressort en
+            # stale=True + errors, et la puce d'en-tête passe en ambre.
+            return self.send(200, _tle_response(refresh_tle(force=True)))
 
         if path == "/api/iss-status":
             return self.send(200, refresh_iss_status())
@@ -550,6 +830,28 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(503, "/* leaflet indisponible */\n", "text/css; charset=utf-8")
             return self.serve_file(LEAFLET_CSS_FILE, "text/css; charset=utf-8")
 
+        if path == "/vendor/fonts.css":
+            if not ensure_fonts():
+                return self.send(503, "/* polices indisponibles : le serveur n'a pas pu les "
+                                      "télécharger, l'interface utilise la pile système. */\n",
+                                 "text/css; charset=utf-8")
+            return self.serve_file(FONTS_CSS_FILE, "text/css; charset=utf-8")
+
+        if path.startswith("/vendor/font/"):
+            name = path[len("/vendor/font/"):]
+            dest = os.path.join(FONTS_DIR, name)
+            if not _FONT_FILE_RE.match(name) or not os.path.isfile(dest):
+                return self.send(404, {"error": "not found"})
+            return self.serve_file(dest, "font/woff2")
+
+        if path.startswith("/vendor/icon/") and path.endswith(".svg"):
+            name = path[len("/vendor/icon/"):-len(".svg")]
+            dest = ensure_icon(name)
+            if not dest:
+                return self.send(404, "<!-- icône Reicon introuvable : %s -->\n" % name,
+                                 "image/svg+xml; charset=utf-8")
+            return self.serve_file(dest, "image/svg+xml; charset=utf-8")
+
         # fichiers statiques
         rel = "index.html" if path == "/" else path.lstrip("/")
         full = os.path.normpath(os.path.join(WEB, rel))
@@ -581,7 +883,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/station":
             station = read_json(STATION_FILE, DEFAULT_STATION)
-            station.update(payload)
+            deep_merge(station, payload)
             with _lock:
                 write_json(STATION_FILE, station)
             return self.send(200, station)
@@ -628,14 +930,96 @@ def disable_windows_throttling():
         log("désactivation de la limitation Windows impossible : %s" % e)
 
 
+def selftest():
+    """Vérification minimale de la fusion de configuration : c'est la seule
+    logique non triviale du serveur, et son échec est silencieux (une clé qui
+    disparaît de station.json, pas une exception). `python3 app.py --selftest`."""
+    st = {"callsign": "F4MAJ",
+          "antenna": {"type": "omni", "height_m": 9, "cone_of_silence_deg": 75},
+          "rig": {"model": "FTM-500D", "tuning_step_khz": 5}}
+
+    # un patch partiel sur un bloc imbriqué garde les clés voisines
+    deep_merge(st, {"antenna": {"type": "yagi"}})
+    assert st["antenna"] == {"type": "yagi", "height_m": 9, "cone_of_silence_deg": 75}, st["antenna"]
+
+    # les clés de premier niveau se remplacent normalement
+    deep_merge(st, {"callsign": "F1ABC"})
+    assert st["callsign"] == "F1ABC"
+
+    # un bloc voisin n'est pas touché
+    assert st["rig"]["tuning_step_khz"] == 5
+
+    # remplacer un dict par un scalaire reste possible (pas de fusion forcée)
+    deep_merge(st, {"rig": None})
+    assert st["rig"] is None
+
+    # GET /api/station : un fichier partiel (écrit par une version antérieure)
+    # doit ressortir complété par les défauts, sans que le disque soit modifié
+    vieux = {"callsign": "F1ABC", "lat": 48.0}
+    servi = deep_merge(copy.deepcopy(DEFAULT_STATION), vieux)
+    assert servi["callsign"] == "F1ABC" and servi["lat"] == 48.0
+    assert servi["alert"]["lead_min"] == 10, "clé absente du disque non complétée"
+    assert vieux == {"callsign": "F1ABC", "lat": 48.0}, "la source a été modifiée"
+    assert DEFAULT_STATION["callsign"] == "F4MAJ", "les défauts ont été écrasés"
+
+    # --- TLE : l'époque est lue correctement, et entre deux sources qui donnent
+    # le même satellite on garde LA PLUS RÉCENTE. Un échec ici est silencieux :
+    # pas d'exception, juste une position de satellite fausse à l'écran.
+    e_old = _tle_epoch("1 25544U 98067A   26248.50000000  .00000000  00000+0  00000+0 0  9990")
+    e_new = _tle_epoch("1 25544U 98067A   26249.90000000  .00000000  00000+0  00000+0 0  9990")
+    assert e_new - e_old - 1.4 * 86400 < 1, "époque TLE mal décodée"
+    assert _tle_epoch("pas un TLE") == 0.0
+
+    old = {"ISS": {"name": "ISS", "l1": "1 25544U 98067A   26248.50000000  .0 0 0 0 0", "l2": "2 25544", "norad": 25544}}
+    new = {"ISS (ZARYA)": {"name": "ISS (ZARYA)", "l1": "1 25544U 98067A   26249.90000000  .0 0 0 0 0", "l2": "2 25544", "norad": 25544}}
+    pool = {}
+    for src in (old, new):
+        for r in src.values():
+            r["epoch"] = _tle_epoch(r["l1"])
+            k = r["norad"]
+            if k not in pool or r["epoch"] > pool[k]["epoch"]:
+                pool[k] = r
+    assert len(pool) == 1 and pool[25544]["name"] == "ISS (ZARYA)", "fusion TLE : le plus récent doit gagner"
+
+    print("selftest OK")
+
+
+def seed_bundled_data():
+    """Exe installé, 1er lancement : DATA (profil user) est vide alors que le
+    bundle contient déjà les libs vendorisées et un cache TLE. On les recopie une
+    fois pour que l'appli soit utilisable même hors ligne au tout premier
+    démarrage. Ne fait rien hors mode figé, ni si la cible existe déjà."""
+    if SEED == DATA:
+        return
+    src_vendor = os.path.join(SEED, "vendor")
+    if os.path.isdir(src_vendor) and not os.path.isdir(VENDOR):
+        try:
+            shutil.copytree(src_vendor, VENDOR)
+            log("libs vendorisées amorcées depuis le bundle")
+        except Exception as e:
+            log("amorçage vendor impossible : %s" % e)
+    src_cache = os.path.join(SEED, "tle_cache.json")
+    if os.path.isfile(src_cache) and not os.path.isfile(TLE_CACHE):
+        try:
+            shutil.copyfile(src_cache, TLE_CACHE)
+            log("cache TLE amorcé depuis le bundle (sera rafraîchi)")
+        except Exception as e:
+            log("amorçage cache TLE impossible : %s" % e)
+
+
 def main():
     disable_windows_throttling()
     ap = argparse.ArgumentParser(description="JB-SATRACK — suivi satellites radioamateur")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8073)))
+    ap.add_argument("--selftest", action="store_true", help="vérifie la fusion de configuration et sort")
     args = ap.parse_args()
 
+    if args.selftest:
+        return selftest()
+
     os.makedirs(DATA, exist_ok=True)
+    seed_bundled_data()          # 1er lancement d'un exe installé : amorce data/ depuis le bundle
     if not os.path.exists(STATION_FILE):
         write_json(STATION_FILE, DEFAULT_STATION)
         log("station.json créé (F4MAJ / JN37QS)")
@@ -643,6 +1027,7 @@ def main():
     threading.Thread(target=lambda: ensure_satjs(), daemon=True).start()
     threading.Thread(target=lambda: ensure_leaflet_js(), daemon=True).start()
     threading.Thread(target=lambda: ensure_leaflet_css(), daemon=True).start()
+    threading.Thread(target=lambda: ensure_fonts(), daemon=True).start()
     threading.Thread(target=tle_worker, daemon=True).start()
 
     log("JB-SATRACK sur http://%s:%d" % (args.host, args.port))
