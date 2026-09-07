@@ -28,8 +28,14 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
   `AppPublisher F4MAJ` de l'installeur.
 - Aucun code applicatif touché. `--selftest` OK, selftest client 24/24.
 
-**À faire**
-- Pousser le tag `v2.0.4` (→ CI → binaires) après validation de JB.
+**Publié**
+- Commit `5c6364d` sur `master`. Tag **`v2.0.4`** → CI `Build Windows` (1 min 20 s)
+  → **Release `v2.0.4`** :
+  - `JB-SATRACK-portable.zip` (9,33 Mo) — contient `JB-SATRACK/PREMIER-DEMARRAGE.txt`
+    à la racine, à côté de l'exe.
+  - `JB-SATRACK-Setup-2.0.4.exe` (9,01 Mo) — l'installeur compile sans erreur
+    avec `LicenseFile` (licence F4MAJ affichée avant install).
+  Deux fichiers transmis à JB.
 
 ## 2026-09-08 — « Me localiser » + la maison bouge enfin sur la carte (v2.0.3)
 
