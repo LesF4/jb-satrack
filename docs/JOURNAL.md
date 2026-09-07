@@ -4,6 +4,18 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-08 (ménage) — Suppression des Releases périmées v2.0.0 → v2.0.2
+
+**Fait** (accord de JB, périmètre choisi explicitement)
+- Supprimé les **Releases GitHub `v2.0.0`, `v2.0.1`, `v2.0.2`** et leurs **tags**
+  (distants + locaux) : périmées, 0 téléchargement externe.
+  `gh release delete <v> --cleanup-tag` + `git tag -d`.
+- **Conservé** : tags `v1.0.0`, `v2.0.3`, `v2.0.4` ; branche `v1` (référence
+  documentée) ; l'historique texte de `CHANGELOG.md` (toutes les versions).
+- État après : Releases = `v2.0.3` + `v2.0.4` (Latest). Tags = `v1.0.0`,
+  `v2.0.3`, `v2.0.4`. Branches = `master`, `v1`.
+- `CHANGELOG.md` : note ajoutée (binaires disponibles à partir de v2.0.3).
+
 ## 2026-09-08 (suite) — Guide de premier démarrage + copyright (v2.0.4)
 
 **Contexte**

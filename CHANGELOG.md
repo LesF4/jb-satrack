@@ -1,7 +1,10 @@
 # Journal des versions
 
 Format : le plus récent en haut. Les binaires sont dans les
-[Releases](https://github.com/F4MAJ/jb-satrack/releases) (dépôt privé).
+[Releases](https://github.com/F4MAJ/jb-satrack/releases) (dépôt privé) — **à
+partir de v2.0.3** ; les Releases v2.0.0–v2.0.2 (et leurs tags) ont été
+supprimées le 2026-09-08, périmées et jamais téléchargées. L'historique texte
+ci-dessous est conservé.
 
 ## v2.0.4 — 2026-09-08
 
