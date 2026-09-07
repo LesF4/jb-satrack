@@ -112,7 +112,8 @@ ajoutée à `DEFAULT_STATION` arrive chez tout le monde sans migration.
 
 | Clé | Effet |
 |---|---|
-| `lat` / `lon` / `alt_m` | position de l'observateur (SGP4). Le formulaire les calcule depuis le `locator` (`locatorToLatLon`) |
+| `lat` / `lon` / `alt_m` | position de l'observateur (SGP4). Le formulaire les calcule depuis le `locator` (`locatorToLatLon`) — **sauf** après « Me localiser », où les coordonnées **exactes** de l'appareil sont enregistrées tant que le locator n'est pas retapé à la main |
+| `city` | libellé affiché dans l'en-tête. Saisi à la main, ou rempli par « Me localiser » via `GET /api/reverse` (OpenStreetMap). Vidé si le géocodage inverse échoue — jamais laissé sur l'ancienne valeur |
 | `antenna.height_m` | ajouté à `alt_m` pour la hauteur de l'observateur |
 | `antenna.cone_of_silence_deg` | seuil « Zénith » (défaut 75°) — au-delà, un passage est signalé moins bon (creux au TCA sur une verticale) |
 | `rig.tuning_step_khz` | pas du plan Doppler / export CHIRP (défaut 5) |

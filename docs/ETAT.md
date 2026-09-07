@@ -1,8 +1,8 @@
 # État — JB-SATRACK
 
-Dernière mise à jour : 2026-09-06
+Dernière mise à jour : 2026-09-08
 
-- **Statut** : actif. Version **v2.0.2** (tags Git `v*` + Releases GitHub).
+- **Statut** : actif. Version **v2.0.3** (tags Git `v*` + Releases GitHub).
 - **Dépôt** : `F4MAJ/jb-satrack` (GitHub, **privé**). Branches : `master` (ligne
   principale) · `v1` (état figé d'avant la refonte de septembre 2026).
 - **Chemin local** : `D:\ClaudeProjets\jb-satrack` (dossier unique — l'ancien
@@ -41,7 +41,8 @@ Dernière mise à jour : 2026-09-06
 | TLE | **AMSAT nasabare + SatNOGS DB + R4UAB** fusionnés (l'orbite la plus récente par NORAD gagne) ; CelesTrak en dernier recours (souvent injoignable depuis une box FAI) | `data/tle_cache.json`, 1 h | dernier cache → `data/tle_fallback.txt` embarqué |
 | Position / passages | calcul **SGP4** (satellite.js) dans le navigateur | — | — |
 | Statut radio ISS | page ARISS (parsing texte) | `data/iss_status.json`, 1 h | statut « inconnu » + lien |
-| Météo station | Open-Meteo | `data/weather_cache.json`, 30 min | — |
+| Météo station | Open-Meteo | `data/weather_cache.json`, 30 min (aussi périmé si la station a bougé de >~10 km) | — |
+| Nom de lieu (bouton « Me localiser ») | Nominatim / OpenStreetMap (`GET /api/reverse`, à la demande) | aucun | champ Ville laissé vide |
 | Fond de carte | Esri World Imagery (tuiles) | tuiles navigateur | fond figé au zoom 3 |
 
 ## Ce qui marche
@@ -66,6 +67,10 @@ Dernière mise à jour : 2026-09-06
 - Interface pleine largeur sur les grands écrans.
 - **Pas de fenêtre bloquante au 1er lancement** : rappel non bloquant, config via
   le bouton Réglages.
+- **Bouton « Me localiser »** (Réglages) : prend la position de l'ordinateur,
+  remplit locator + ville + fuseau. Utile en déplacement. La saisie manuelle du
+  locator reste inchangée. À l'enregistrement, la maison se déplace sur la carte,
+  la vue se recentre et tous les passages sont recalculés.
 - Copyright : « © 2026 F4MAJ — Tous droits réservés » (pied de page, `LICENSE`).
 
 ## Limites connues

@@ -26,7 +26,7 @@ const Icons = (function () {
     'Plus', 'Minus',
     'SignalStream', 'Radio', 'Sliders', 'Satellite',
     'Clock', 'Timer', 'Calendar', 'Activity', 'Bell',
-    'Globe', 'Target', 'Compass', 'Route', 'Ruler', 'Gauge',
+    'Globe', 'Target', 'Compass', 'Crosshairs', 'Route', 'Ruler', 'Gauge',
     'ArrowUp', 'ArrowDown', 'Eye', 'Moon', 'VolumeHigh', 'VolumeMute',
     'List', 'Notebook', 'Book',
     'Sun', 'CloudSun', 'Cloud', 'CloudFog', 'CloudDrizzle', 'CloudRain',

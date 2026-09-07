@@ -1,3 +1,96 @@
+# JB-SATRACK — modifications du 8 septembre 2026 (v2.0.3)
+
+> Ajout de « Me localiser » (position de l'ordinateur) dans les Réglages, et
+> correction : la maison bougeait dans les calculs mais pas sur la carte. Le
+> détail de la grosse mise à niveau v2.0.0 suit, plus bas.
+
+Fichiers touchés : [`app.py`](app.py), [`web/app.js`](web/app.js),
+[`web/index.html`](web/index.html), [`web/style.css`](web/style.css),
+[`web/icons.js`](web/icons.js).
+Aucune dépendance ajoutée (`urllib.parse` est dans la lib standard).
+`python app.py --selftest` : OK. Selftest client (`/?selftest=1`) : 24/24.
+
+## 1. Ce qui manquait
+
+- **Le locator est manuel, et c'est bien.** Mais en déplacement on ne connaît
+  pas forcément son locator ni sa ville — l'ordinateur, lui, sait où il est.
+- **La maison sur la carte ne bougeait pas.** Après un changement de position,
+  `computeAll()` recalculait tous les passages depuis le nouvel observateur, mais
+  le marqueur `staMarker` était posé une seule fois dans `build()` et aucun code
+  ne le redéplaçait. La carte ne se recentrait pas non plus. Résultat : on
+  enregistre, tout est juste en coulisses, mais l'écran donne l'impression que
+  rien n'a changé.
+- **La ville restait l'ancienne** sous un locator neuf — trompeur.
+
+## 2. Ce qui a été fait
+
+### Bouton « Me localiser » (`web/index.html`, `web/app.js`, `web/style.css`)
+
+- Sous le champ Locator de la modale Réglages, un bouton discret
+  `[Crosshairs] Me localiser`. Groupe `.field-plus` : gap serré avec le champ.
+- `locateFromDevice()` : `navigator.geolocation.getCurrentPosition`. La
+  permission ne s'obtient **que depuis ce clic** (hors geste utilisateur,
+  Safari/Firefox l'ignorent — même règle que `Notification.requestPermission`).
+- Succès → remplit le champ **Locator** (via `latLonToLocator`, voir §3), le
+  **Fuseau** (`Intl.DateTimeFormat().resolvedOptions().timeZone`, sans
+  permission), et lance le géocodage inverse pour la **Ville**.
+- Refus / pas de géoloc → message dans `#s-error`, aucun champ touché.
+- Rien n'est envoyé au serveur ici : l'opérateur relit puis **Enregistre**,
+  exactement comme une saisie manuelle. Pas d'aperçu live pendant qu'on tape.
+
+### La maison bouge (`web/app.js`)
+
+- Nouvelle fonction `MAP.setStation()` (exposée par le module `MAP`) :
+  `staMarker.setLatLng(...)`, rafraîchit l'étiquette (l'indicatif a pu changer)
+  et `focusHome()` recadre la carte sur la nouvelle position (coupe le suivi,
+  comme un geste manuel — on vient de redéfinir « chez soi »).
+- `saveSetup()` appelle, dans l'ordre : `renderHeader()` → `computeAll()` (les
+  calculs d'abord) → `MAP.setStation()` isolé dans un `try` (un hoquet de la
+  carte ne doit jamais bloquer le recalcul) → `loadWeather()`.
+- Tout se produit quand la modale se referme après « ✓ Enregistré ».
+
+### Coordonnées exactes conservées (`web/app.js`)
+
+- `deviceFix = { lat, lon, loc }` retient la position renvoyée par la géoloc.
+  Tant que le champ Locator vaut encore ce `loc`, `saveSetup()` enregistre ces
+  **coordonnées exactes** plutôt que le centre de la case Maidenhead (~3 km).
+- Toute frappe dans le champ Locator remet `deviceFix` à `null` : la valeur
+  tapée l'emporte.
+
+### Géocodage inverse (`app.py`)
+
+- `reverse_geocode(lat, lon)` : Nominatim (OpenStreetMap), `format=jsonv2`,
+  `urllib` standard — même approche que les TLE et les icônes. Choisit la 1re clé
+  présente parmi `village, town, city, municipality, hamlet, suburb, county`.
+- Route `GET /api/reverse?lat=&lon=` : valide les bornes (`400` sinon), renvoie
+  `{"city": "..."}` ou `{"city": null}`. **Jamais 500** : toute erreur (réseau,
+  parsing) → `{"city": null}` et le client vide le champ.
+- `refresh_weather()` : re-télécharge si la station a bougé de plus de ~0,1°
+  (~10 km), même si le cache est récent (sinon météo de l'ancien lieu).
+
+## 3. `latLonToLocator()` — l'inverse de `locatorToLatLon()`
+
+- lat/lon → locator Maidenhead 6 caractères (sous-carré contenant le point).
+  `locatorToLatLon(latLonToLocator(p))` retombe dans la même case.
+- Le reste du code ne connaît que le locator : la géoloc arrive en lat/lon, on
+  convertit, tout le pipeline existant (bandeau, carte, alertes) suit sans
+  changement.
+- `selfTest()` : aller-retour sur 5 carrés répartis sur le globe + rejet des
+  valeurs hors bornes + présence du hook `MAP.setStation`.
+
+## 4. Contexte pour l'exe / le zip Windows
+
+- **Aucun changement dans `packaging/`.** Pas de dépendance pip ajoutée, pas de
+  fichier à embarquer en plus — le `.spec` bundle déjà `web/` et `app.py`.
+- `navigator.geolocation` exige un « contexte sécurisé » : `https://` **ou**
+  `localhost` / `127.0.0.1`. L'exe sert sur `127.0.0.1:8073` → **fonctionne**.
+  Ouvert depuis une autre machine du réseau (`http://192.168.x.x:8073`), le
+  navigateur bloque la géoloc — la saisie manuelle du locator reste disponible.
+- Le géocodage inverse et la météo demandent Internet **au moment du clic** ;
+  hors ligne, tout dégrade proprement (locator quand même rempli, ville vide).
+
+---
+
 # JB-SATRACK — modifications du 6 septembre 2026
 
 > Ce document détaille la grosse mise à niveau (v2.0.0). Le journal version par

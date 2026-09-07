@@ -37,6 +37,15 @@ Bouton **Réglages** dans l'en-tête (indicatif, locator, ville, fuseau). La
 position se calcule depuis le locator. Réglages avancés (antenne, rig, seuils,
 alerte) : éditer `data/station.json` — voir [`DONNEES.md`](DONNEES.md#stationjson).
 
+Sous le champ Locator, **« Me localiser »** prend la position de l'ordinateur
+(utile en déplacement) : remplit locator, ville (via OpenStreetMap) et fuseau.
+Le navigateur demande l'autorisation ; sur macOS il faut aussi Réglages Système →
+Confidentialité et sécurité → Service de localisation activé pour le navigateur.
+Marche depuis `localhost` / `127.0.0.1` ; depuis une autre machine du réseau en
+`http://` simple, le navigateur bloque la géoloc (saisir le locator à la main).
+À l'**enregistrement**, la maison se déplace sur la carte, la vue se recentre et
+tous les passages sont recalculés.
+
 Il n'y a **pas de fenêtre bloquante** au 1er lancement : l'appli tourne avec les
 valeurs par défaut (F4MAJ / JN37QS) et affiche un rappel non bloquant tant que
 `configured` est `false`.
@@ -108,8 +117,9 @@ Détail : [`../packaging/README.md`](../packaging/README.md). Sorties dans
 
 ## Publier une version
 
-1. Mettre à jour [`CHANGELOG.md`](../CHANGELOG.md), le pied de page (`web/index.html`)
-   et `#define AppVersion` dans `packaging/installer.iss`.
+1. Mettre à jour [`CHANGELOG.md`](../CHANGELOG.md), `#define AppVersion` dans
+   `packaging/installer.iss`, la version dans `packaging/README.md`, et
+   `docs/ETAT.md`. (La CI réécrit de toute façon `AppVersion` depuis le tag.)
 2. `git commit` + `git push origin master`.
 3. `git tag vX.Y.Z master && git push origin vX.Y.Z`.
 4. La **CI** (`.github/workflows/build.yml`) construit portable + installeur et

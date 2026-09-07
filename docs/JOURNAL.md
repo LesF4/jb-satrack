@@ -4,6 +4,48 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-08 — « Me localiser » + la maison bouge enfin sur la carte (v2.0.3)
+
+**Contexte**
+- Reprise depuis le MacBook Pro. Demande de JB : garder la saisie manuelle du
+  locator (elle sert à regarder les passages ailleurs), mais ajouter un bouton
+  « position de cet ordinateur » pour les déplacements.
+- En creusant : après un changement de position, `computeAll()` recalculait bien
+  tout, mais le marqueur maison de la carte ne bougeait pas (posé une fois dans
+  `build()`, jamais redéplacé) et la vue ne se recentrait pas.
+
+**Fait**
+- **Bouton « Me localiser »** sous le champ Locator (modale Réglages).
+  `locateFromDevice()` : `navigator.geolocation` sur clic (permission
+  impossible hors geste). Remplit locator (`latLonToLocator()`, nouvel inverse de
+  `locatorToLatLon()`), fuseau (`Intl`), et ville via géocodage inverse.
+- **`GET /api/reverse`** (`app.py`) : Nominatim / OpenStreetMap, `urllib`
+  standard, jamais bloquant (`{"city": null}` sur toute erreur).
+- **`MAP.setStation()`** : déplace la maison, rafraîchit l'étiquette, recentre la
+  carte. Appelé par `saveSetup()` après `computeAll()` (calculs prioritaires,
+  carte isolée dans un `try`). `loadWeather()` enchaîné.
+- Coordonnées **exactes** de l'appareil enregistrées tant que le locator n'est
+  pas retapé (`deviceFix`), sinon centre de la case.
+- `refresh_weather()` re-télécharge si la station a bougé de >~10 km.
+- Icône Reicon **Crosshairs** ajoutée au `MANIFEST`.
+- Selftest client : 21 → **24/24** (aller-retour locator, bornes, hook carte).
+  `python app.py --selftest` : OK.
+
+**Vérifié** (navigateur intégré + Opera)
+- Géoloc simulée Illzach → locator JN37RR, ville « Rixheim » (OSM), fuseau.
+- Enregistrement → maison déplacée sur Mulhouse/Rixheim, carte recentrée,
+  passages recalculés (RS-44), météo suivie, suivi satellite suspendu.
+- Refus de géoloc → message clair, aucun champ modifié.
+
+**Décidé** — voir `DECISIONS.md` (entrée 2026-09-08).
+
+**Note**
+- `data/station.json` avait été écrit en `JN19KK` pendant un test de JB dans
+  Opera (géoloc + Enregistrer). Remis à la valeur versionnée (`JN37QS` / Illzach)
+  avant le commit — le fichier est versionné, il porte la config F4MAJ.
+- L'identité Git du dépôt était `Ton Nom` ; commit fait avec `user.name=F4MAJ`
+  (repo-local) pour rester cohérent avec l'historique.
+
 ## 2026-09-06 (soir) — Documentation complète du projet
 
 **Fait**

@@ -3,6 +3,26 @@
 Format : le plus récent en haut. Les binaires sont dans les
 [Releases](https://github.com/F4MAJ/jb-satrack/releases) (dépôt privé).
 
+## v2.0.3 — 2026-09-08
+
+- **Bouton « Me localiser »** dans la fenêtre Réglages, sous le champ Locator :
+  un clic prend la position de l'ordinateur (utile en déplacement, quand on ne
+  connaît pas son locator). Remplit le **locator** (calculé depuis lat/lon), la
+  **ville** (via OpenStreetMap) et le **fuseau horaire**. La saisie manuelle
+  reste identique — on peut toujours taper un locator pour regarder les passages
+  ailleurs. La permission de géolocalisation se demande au navigateur, jamais
+  depuis un fichier.
+- **La maison se déplace vraiment sur la carte** après un changement de position.
+  Le marqueur était posé une seule fois au démarrage et rien ne le redéplaçait :
+  à l'enregistrement, la maison rejoint la nouvelle position, la carte s'y
+  recentre, tous les passages sont recalculés et la météo suit.
+- Coordonnées **exactes** de l'appareil enregistrées (pas le centre de la case
+  Maidenhead, ~3 km d'écart) tant que le locator n'est pas retapé à la main.
+- Nouvelle route serveur **`GET /api/reverse`** (géocodage inverse via Nominatim,
+  `urllib` standard). Jamais bloquante : hors ligne ou sans correspondance, le
+  champ Ville est laissé vide plutôt que sur l'ancienne valeur.
+- Icône Reicon **Crosshairs** ajoutée au manifeste.
+
 ## v2.0.2 — 2026-09-06
 
 - **Bandeau et compte à rebours calés sur la fenêtre exploitable** (≥

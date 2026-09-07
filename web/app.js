@@ -705,7 +705,21 @@ const MAP = (function () {
     if (data.later) pin(data.later, 'Dans ' + data.later.hours + ' h', [-2, 44]);
   }
 
-  return { build, draw, setWeather, resumeFollow, fitMinZoom };
+  /* La station a changé de place (« Me localiser » ou saisie manuelle, appliqué
+     à l'enregistrement). Le marqueur maison était posé une seule fois au build()
+     et rien ne le redéplaçait — d'où l'impression que « rien ne bouge ». On le
+     recale, on rafraîchit son étiquette (l'indicatif a pu changer) et on recadre
+     dessus. focusHome() coupe le suivi comme un geste manuel : voulu, on vient
+     de redéfinir où est « chez soi ». */
+  function setStation() {
+    if (!map || !S.station) return;
+    staMarker.setLatLng([S.station.lat, S.station.lon]);
+    staMarker.setIcon(L.divIcon({ className: '', iconAnchor: [0, 0],
+      html: '<div class="sat-icon station">' + Icons.html('Home', { className: 'house', size: 16 }) + S.station.callsign + '</div>' }));
+    focusHome();
+  }
+
+  return { build, draw, setStation, setWeather, resumeFollow, fitMinZoom };
 })();
 
 /* ------------------------------------------------------------------ boucle */
@@ -1078,6 +1092,25 @@ function locatorToLatLon(loc) {
   return { lat: Math.round(lat * 10000) / 10000, lon: Math.round(lon * 10000) / 10000 };
 }
 
+/* lat/lon -> locator Maidenhead 6 caractères (case du sous-carré qui contient le
+   point). Inverse de locatorToLatLon à la résolution du sous-carré près :
+   locatorToLatLon(latLonToLocator(p)) retombe dans la même case. Sert au bouton
+   « Me localiser » — la position arrive en lat/lon, le reste du code ne connaît
+   que le locator. */
+function latLonToLocator(lat, lon) {
+  if (typeof lat !== 'number' || typeof lon !== 'number' || !isFinite(lat) || !isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  lat = Math.min(89.99999, lat) + 90;         // le pôle exact retombe dans la dernière case
+  lon = Math.min(179.99999, lon) + 180;
+  const A = 'A'.charCodeAt(0), Z = '0'.charCodeAt(0);
+  return String.fromCharCode(A + Math.floor(lon / 20))
+       + String.fromCharCode(A + Math.floor(lat / 10))
+       + String.fromCharCode(Z + Math.floor((lon % 20) / 2))
+       + String.fromCharCode(Z + Math.floor(lat % 10))
+       + String.fromCharCode(A + Math.floor((lon % 2) / (2 / 24)))
+       + String.fromCharCode(A + Math.floor((lat % 1) / (1 / 24)));
+}
+
 /* ---- modale de configuration ---------------------------------------------
    Un dialogue modal se ferme au clic sur le voile et à Échap, prend le focus à
    l'ouverture, le garde (Tab ne sort pas derrière) et le rend au bouton qui l'a
@@ -1087,8 +1120,16 @@ function locatorToLatLon(loc) {
    « Annuler ». La seule sortie est d'enregistrer. */
 let setupLocked = false, setupTrigger = null;
 
+/* Position renvoyée par « Me localiser » : lat/lon exacts de l'appareil + le
+   locator qu'on en a déduit. Tant que le champ Locator vaut encore ce
+   locator-là, saveSetup enregistre ces coordonnées exactes plutôt que le centre
+   de la case (~3 km d'écart). Une saisie manuelle dans le champ la remet à null :
+   la valeur tapée l'emporte. */
+let deviceFix = null;
+
 function openSetup(firstRun) {
   const st = S.station || {};
+  deviceFix = null;
   $('s-call').value = firstRun ? '' : (st.callsign || '');
   $('s-loc').value = firstRun ? '' : (st.locator || '');
   $('s-city').value = st.city || '';
@@ -1143,8 +1184,63 @@ function wireSetupModal() {
 }
 
 function updateSetupPreview() {
+  const loc = $('s-loc').value.trim().toUpperCase();
+  if (deviceFix && deviceFix.loc === loc) {
+    $('s-preview').textContent = 'Position de l\'appareil : '
+      + deviceFix.lat.toFixed(4) + '°, ' + deviceFix.lon.toFixed(4) + '° · locator ' + loc;
+    return;
+  }
   const p = locatorToLatLon($('s-loc').value);
   $('s-preview').textContent = p ? ('Position calculée : ' + p.lat.toFixed(4) + '°, ' + p.lon.toFixed(4) + '°') : '';
+}
+
+/* « Me localiser » : demande sa position à l'appareil, remplit Locator (déduit
+   des coordonnées) et Fuseau (lu sans permission via Intl). Rien ne part au
+   serveur ici — l'opérateur relit puis Enregistre, comme une saisie manuelle.
+   La permission ne s'obtient QUE depuis ce clic : hors geste utilisateur,
+   Safari et Firefox l'ignorent (même règle que Notification.requestPermission). */
+function locateFromDevice() {
+  const btn = $('s-geo'), label = btn.querySelector('.geo-label');
+  if (btn.disabled) return;
+  if (!navigator.geolocation) {
+    $('s-error').textContent = 'Cet appareil ne donne pas de position — saisis ton locator à la main.';
+    SFX.play(SND.oops, .08); return;
+  }
+  $('s-error').textContent = '';
+  const was = label.textContent;
+  btn.disabled = true; btn.setAttribute('aria-busy', 'true'); label.textContent = 'Localisation…';
+  const done = () => { btn.disabled = false; btn.removeAttribute('aria-busy'); label.textContent = was; };
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = Math.round(pos.coords.latitude * 10000) / 10000;
+    const lon = Math.round(pos.coords.longitude * 10000) / 10000;
+    const loc = latLonToLocator(lat, lon);
+    if (!loc) {
+      $('s-error').textContent = 'Position reçue mais hors grille Maidenhead — saisis ton locator à la main.';
+      SFX.play(SND.oops, .08); done(); return;
+    }
+    deviceFix = { lat, lon, loc };
+    $('s-loc').value = loc;
+    try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz) $('s-tz').value = tz; } catch (e) {}
+    updateSetupPreview();
+    SFX.play(SND.done, .07);
+    done();
+    /* Le nom du lieu se traduit côté serveur (OpenStreetMap) : asynchrone, on
+       n'attend pas pour rendre la main. Pas de réseau ou pas de correspondance
+       -> champ vidé, jamais l'ancienne ville sous un locator neuf. */
+    const cityEl = $('s-city');
+    cityEl.value = ''; cityEl.placeholder = 'recherche du lieu…';
+    fetch('/api/reverse?lat=' + lat + '&lon=' + lon)
+      .then(r => r.json())
+      .then(d => { cityEl.value = (d && d.city) || ''; })
+      .catch(() => { cityEl.value = ''; })
+      .finally(() => { cityEl.placeholder = 'ex. Illzach'; });
+  }, err => {
+    $('s-error').textContent = err && err.code === 1
+      ? 'Localisation refusée. Autorise ton navigateur dans Réglages Système → Confidentialité et sécurité → Service de localisation, ou saisis ton locator à la main.'
+      : 'Position indisponible pour l\'instant — saisis ton locator à la main.';
+    SFX.play(SND.oops, .08);
+    done();
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 }
 
 async function saveSetup() {
@@ -1153,7 +1249,11 @@ async function saveSetup() {
   const loc = $('s-loc').value.trim().toUpperCase();
   const city = $('s-city').value.trim();
   const tz = $('s-tz').value.trim() || 'Europe/Paris';
-  const pos = locatorToLatLon(loc);
+  /* Locator inchangé depuis « Me localiser » : on garde les coordonnées exactes
+     de l'appareil. Sinon (saisie manuelle) : centre de la case. */
+  const pos = (deviceFix && deviceFix.loc === loc)
+    ? { lat: deviceFix.lat, lon: deviceFix.lon }
+    : locatorToLatLon(loc);
   if (!call || !pos) {
     $('s-error').textContent = !call ? 'Indicatif requis.' : 'Locator invalide (ex. JN37QS).';
     SFX.play(SND.oops, .08); return;
@@ -1191,7 +1291,11 @@ async function saveSetup() {
       height: (station.alt_m + (station.antenna.height_m || 0)) / 1000
     };
     renderHeader();
-    computeAll();
+    computeAll();       // priorité : tous les passages recalculés depuis le nouvel observateur
+    /* la maison rejoint la nouvelle position et la carte s'y recentre — isolé
+       pour qu'un hoquet de la carte ne bloque jamais le recalcul ci-dessus */
+    try { MAP.setStation(); } catch (e) { console.warn('recentrage carte :', e); }
+    loadWeather();      // météo du nouveau lieu (le serveur retélécharge si on a bougé)
   } catch (e) {
     console.warn('rafraîchissement post-enregistrement :', e);
   }
@@ -1252,7 +1356,8 @@ window.addEventListener('DOMContentLoaded', () => {
   renderSoundBtn();
   $('s-cancel').onclick = closeSetup;
   $('s-save').onclick = saveSetup;
-  $('s-loc').oninput = updateSetupPreview;
+  $('s-geo').onclick = locateFromDevice;
+  $('s-loc').oninput = () => { deviceFix = null; updateSetupPreview(); };
   wireSetupModal();
   boot();
   /* ?selftest dans l'URL : vérifie la chorégraphie et le format CHIRP dans la
@@ -1862,6 +1967,21 @@ function selfTest() {
   const cA = crossEl(null, 0, 500, 5), cB = crossEl(null, 500, 1000, 5);
   ok(Math.abs(cA - 100) < 3 && Math.abs(cB - 900) < 3, 'crossEl : les deux franchissements du seuil');
   elevationAt = _elevAt;
+
+  /* Locator <-> lat/lon : « Me localiser » convertit la position de l'appareil
+     en locator, tout le reste du code repart de ce locator. Un aller-retour qui
+     ne retombe pas dans la même case = station affichée au mauvais endroit, sans
+     rien qui le signale. */
+  ok(['JN37QS', 'IO91WM', 'FN20', 'GF15', 'RE78'].every(g => {
+    const c = locatorToLatLon(g);
+    return latLonToLocator(c.lat, c.lon).slice(0, g.length) === g;
+  }), 'locator : aller-retour lat/lon sur plusieurs carrés');
+  ok(latLonToLocator(999, 0) === null && latLonToLocator('x', 0) === null,
+     'locator : lat/lon hors bornes ou non numérique -> null');
+  /* saveSetup() compte sur ce hook pour redéplacer la maison sur la carte après
+     un changement de position. Un renommage le casserait en silence : le calcul
+     resterait juste, mais le marqueur figé à l'ancien endroit. */
+  ok(typeof MAP.setStation === 'function', 'carte : hook de repositionnement de la station présent');
 
   const bad = out.filter(l => l[0] === '✗').length;
   console.log('%cselftest JB-SATRACK — ' + (out.length - bad) + '/' + out.length,

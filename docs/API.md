@@ -66,7 +66,8 @@ tête**.
 
 ### `GET /api/weather` · `GET /api/weather/refresh`
 Météo Open-Meteo autour de `station.lat/lon` (cache `data/weather_cache.json`,
-30 min).
+30 min). Le cache est aussi considéré périmé si la station a **bougé de plus de
+~0,1°** (~10 km) depuis le dernier téléchargement, même s'il est récent.
 
 ```json
 { "fetched_at": 1788…, "lat": 47.77, "lon": 7.37,
@@ -76,6 +77,25 @@ Météo Open-Meteo autour de `station.lat/lon` (cache `data/weather_cache.json`,
 ```
 `icon` = nom d'icône Reicon (table `WMO`). Échec, cache présent → `stale: true` +
 `error`.
+
+### `GET /api/reverse?lat=<>&lon=<>`
+**Géocodage inverse** (coordonnées → nom de commune), pour le bouton
+« Me localiser » de la fenêtre Réglages. Interroge **Nominatim (OpenStreetMap)**
+avec `urllib` (lib standard) — même principe que les TLE et les icônes. Pas de
+cache : appelé une fois, à la demande, sur clic utilisateur.
+
+```json
+{ "city": "Illzach" }      // ou  { "city": null }
+```
+
+`lat`/`lon` absents ou non numériques → `400`. Hors bornes
+(`-90..90` / `-180..180`) → `400`. **Aucune autre erreur ne remonte** : pas de
+réseau, Nominatim muet, réponse illisible, aucune correspondance → `{"city":
+null}` (HTTP 200). Le client (`locateFromDevice`) remplit alors le champ Ville,
+ou le **vide** — jamais l'ancienne valeur sous un locator neuf.
+
+Ordre des clés d'adresse retenues : `village`, `town`, `city`, `municipality`,
+`hamlet`, `suburb`, `county`, puis `name`.
 
 ### `GET /api/qso`
 Le journal `data/qso.json` : `[ {id, utc, call, grid, rst_s, rst_r, sat, mode,

@@ -19,6 +19,9 @@
       tray) devient souhaitable — le code web ne bouge pas.
 
 ## Fait (archive)
+- [x] 2026-09-08 — Bouton « Me localiser » (position de l'ordinateur → locator +
+      ville + fuseau, géocodage inverse OpenStreetMap) ; la maison se déplace
+      enfin sur la carte après un changement de position (v2.0.3).
 - [x] 2026-09-06 — Refonte interface + fiabilisation TLE (AMSAT/SatNOGS/R4UAB) +
       fix ISS (NORAD) + config non bloquante + empaquetage Windows + CI +
       Releases + versionnage (tags `v*`) + consolidation en un dossier unique.

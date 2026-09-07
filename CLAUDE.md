@@ -45,6 +45,26 @@ Conséquence pratique : **ajouter un réglage = une clé dans `DEFAULT_STATION`*
 c'est tout. Ne pas ajouter de valeur par défaut côté client en parallèle, ce serait
 une seconde source de vérité.
 
+### « Me localiser » : la position vient de l'appareil, le reste n'y touche pas
+
+Le bouton de la modale Réglages prend la position via `navigator.geolocation` —
+**sur clic uniquement**, la permission ne s'obtient pas hors geste utilisateur
+(même contrainte que les notifications, voir plus bas). La position arrive en
+lat/lon ; `latLonToLocator()` en tire le **locator**, et tout le pipeline
+existant (bandeau, carte, alertes, `computeAll`) repart de ce locator sans
+modification. Les coordonnées **exactes** de l'appareil sont conservées à
+l'enregistrement tant que le champ Locator n'est pas retapé (`deviceFix`).
+
+- **Le nom de commune** se résout côté serveur (`GET /api/reverse` → Nominatim /
+  OpenStreetMap, `urllib` standard — comme les TLE et les icônes), jamais par un
+  appel tiers depuis le navigateur. **Jamais bloquant** : hors ligne ou sans
+  correspondance → champ Ville **vidé**, jamais laissé sur l'ancienne valeur.
+- **Rien ne s'applique avant « Enregistrer ».** Le formulaire est un brouillon ;
+  pas d'aperçu live sur la carte. `saveSetup()` applique tout d'un coup :
+  `renderHeader()`, `computeAll()`, puis `MAP.setStation()` (déplace la maison +
+  recentre la carte — le marqueur était figé depuis `build()`), puis
+  `loadWeather()`.
+
 ## Icônes : banque unique **Reicon**
 
 Toutes les icônes de l'interface viennent de **Reicon**

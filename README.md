@@ -92,6 +92,14 @@ Tout est dans `data/station.json`, créé au premier démarrage :
   L'interrupteur, lui, est le bouton **Alertes** de l'en-tête : la permission de notifier
   se demande par navigateur, elle ne peut pas venir d'un fichier.
 
+La fenêtre **Réglages** (bouton dans l'en-tête) permet de saisir indicatif, locator,
+ville et fuseau à la main. Sous le champ Locator, **« Me localiser »** prend la
+position de l'ordinateur (utile en déplacement, quand on ne connaît pas son locator
+exact) : il remplit le locator, la ville (via OpenStreetMap) et le fuseau. La
+permission de géolocalisation se demande au navigateur ; ça marche depuis
+`localhost` / `127.0.0.1`. À l'enregistrement, la maison se déplace sur la carte,
+la vue se recentre et tous les passages sont recalculés.
+
 Le catalogue des satellites et leurs fréquences est dans `data/satellites.json` — facile à éditer pour ajouter un satellite ou corriger une fréquence.
 
 ## Méthode de travail avec le FTM-500D
@@ -125,6 +133,7 @@ En bande basse (145 MHz) le Doppler est d'environ ±3 kHz, en 435 MHz d'environ 
 | `GET /api/tle` · `GET /api/tle/refresh` | éléments orbitaux (cache 1 h) |
 | `GET /api/iss-status` · `/refresh` | état radio ISS (ARISS, cache 1 h) |
 | `GET /api/weather` · `/refresh` | météo à la station, maintenant + prévision courte (cache 30 min) |
+| `GET /api/reverse?lat=&lon=` | nom de commune depuis des coordonnées (bouton « Me localiser », via OpenStreetMap) |
 | `GET /api/qso` · `POST /api/qso` | journal de trafic |
 | `GET /api/qso.adi` | export ADIF |
 | `GET /api/health` | état du serveur |

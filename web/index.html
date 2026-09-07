@@ -298,8 +298,12 @@ try{var t=localStorage.getItem('jbs-theme');
     <p class="modal-intro">Ton indicatif et ton locator suffisent — la position se calcule toute seule.</p>
     <label class="field"><span>Indicatif</span>
       <input id="s-call" placeholder="ex. F4MAJ" autocomplete="off" autocapitalize="characters"></label>
-    <label class="field"><span>Locator (grid square)</span>
-      <input id="s-loc" placeholder="ex. JN37QS" autocomplete="off" autocapitalize="characters" maxlength="8"></label>
+    <div class="field-plus">
+      <label class="field"><span>Locator (grid square)</span>
+        <input id="s-loc" placeholder="ex. JN37QS" autocomplete="off" autocapitalize="characters" maxlength="8"></label>
+      <button type="button" id="s-geo" class="btn-geo">
+        <span class="ic" data-ic="Crosshairs"></span><span class="geo-label">Me localiser</span></button>
+    </div>
     <label class="field"><span>Ville (optionnel)</span>
       <input id="s-city" placeholder="ex. Illzach" autocomplete="off"></label>
     <label class="field"><span>Fuseau horaire</span>

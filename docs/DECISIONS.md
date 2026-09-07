@@ -4,6 +4,33 @@
 > `README.md` et `CLAUDE.md` : ce sont des choix déjà en place, pas des décisions
 > prises ce jour-là.
 
+## 2026-09-08 — « Me localiser » : géoloc navigateur + géocodage inverse serveur
+
+- **Contexte** : le locator manuel convient (il sert aussi à regarder les
+  passages depuis un autre carré), mais en déplacement JB ne connaît pas son
+  locator ni sa ville exacts — l'ordinateur, lui, sait où il est.
+- **Choix** :
+  - Géolocalisation par `navigator.geolocation`, **sur clic uniquement** (la
+    permission ne s'obtient pas hors geste — même contrainte que les
+    notifications). Un bouton, pas un réglage de fichier.
+  - La position arrive en lat/lon ; on la convertit en **locator**
+    (`latLonToLocator`) et tout le pipeline existant (bandeau, carte, alertes)
+    suit sans modification. Coordonnées exactes conservées à l'enregistrement
+    tant que le locator n'est pas retapé (sinon centre de la case, ~3 km).
+  - **Nom de commune** : géocodage inverse **côté serveur** via Nominatim
+    (OpenStreetMap), `urllib` standard — cohérent avec les TLE et les icônes,
+    plutôt qu'un appel tiers depuis le navigateur. Jamais bloquant : hors ligne
+    ou sans correspondance → champ Ville **vidé**, jamais l'ancienne valeur.
+  - Rien ne s'applique tant qu'on n'a pas cliqué **Enregistrer** : le formulaire
+    reste un brouillon, pas d'aperçu live sur la carte.
+- **Corrigé au passage** : `MAP.setStation()` déplace enfin le marqueur maison
+  et recentre la carte après un changement de position (le marqueur était figé
+  depuis `build()` ; seuls les calculs se rafraîchissaient).
+- **Compromis accepté** : le géocodage inverse et la météo du nouveau lieu
+  demandent Internet au moment du clic ; les coordonnées transitent par
+  OpenStreetMap (service public, sans clé). Le locator, lui, se calcule hors
+  ligne.
+
 ## 2026-09-06 — TLE : sources multiples fusionnées, plus CelesTrak seul
 
 - **Contexte** : `celestrak.org` est totalement injoignable depuis la connexion

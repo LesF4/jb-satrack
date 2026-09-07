@@ -26,6 +26,7 @@ import ssl
 import sys
 import threading
 import time
+import urllib.parse
 import urllib.request
 import webbrowser
 from datetime import datetime, timezone
@@ -405,11 +406,16 @@ def _wx_point(code, temp):
 
 def refresh_weather(force=False):
     cache = read_json(WEATHER_CACHE, {})
-    if cache.get("now") and time.time() - cache.get("fetched_at", 0) < WEATHER_MAX_AGE and not force:
-        return cache
-
     station = read_json(STATION_FILE, DEFAULT_STATION)
     lat, lon = station.get("lat", 0), station.get("lon", 0)
+
+    # La station a pu bouger (géoloc, saisie) : un cache pour l'ancien lieu est
+    # périmé même s'il est récent. Au-delà de ~10 km on retélécharge.
+    moved = (abs(cache.get("lat", lat) - lat) > 0.1
+             or abs(cache.get("lon", lon) - lon) > 0.1)
+    if (cache.get("now") and not force and not moved
+            and time.time() - cache.get("fetched_at", 0) < WEATHER_MAX_AGE):
+        return cache
 
     try:
         url = (WEATHER_URL + "?latitude=%.4f&longitude=%.4f" % (lat, lon) +
@@ -441,6 +447,32 @@ def refresh_weather(force=False):
             cache["error"] = str(e)
             return cache
         return {"fetched_at": 0, "now": None, "later": None, "error": str(e), "stale": True}
+
+
+# ------------------------------------------------ géocodage inverse (nom de lieu)
+# Le bouton « Me localiser » du client donne des coordonnées, pas un nom de
+# commune. On les traduit à la demande via Nominatim (OpenStreetMap, gratuit,
+# sans clé), avec urllib de la lib standard — comme les TLE et les icônes.
+# Jamais bloquant : pas de réseau ou pas de correspondance -> {"city": None},
+# et le client efface le champ Ville plutôt que d'y laisser l'ancienne valeur.
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
+_PLACE_KEYS = ("village", "town", "city", "municipality", "hamlet",
+               "suburb", "county")
+
+def reverse_geocode(lat, lon):
+    try:
+        url = (NOMINATIM_URL + "?format=jsonv2&zoom=12&accept-language=fr"
+               + "&lat=%.5f&lon=%.5f" % (lat, lon))
+        data = json.loads(http_get(
+            url, timeout=8, ua="jb-satrack (F4MAJ, suivi satellite amateur)"))
+        addr = data.get("address", {}) or {}
+        for k in _PLACE_KEYS:
+            if addr.get(k):
+                return {"city": addr[k]}
+        return {"city": data.get("name") or None}
+    except Exception as e:
+        log("géocodage inverse ÉCHEC : %s" % e)
+        return {"city": None}
 
 
 # ------------------------------------------------------------- statut ISS
@@ -793,6 +825,16 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/weather/refresh":
             return self.send(200, refresh_weather(force=True))
+
+        if path == "/api/reverse":
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            try:
+                lat, lon = float(q.get("lat", [""])[0]), float(q.get("lon", [""])[0])
+            except (TypeError, ValueError):
+                return self.send(400, {"error": "lat et lon requis"})
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                return self.send(400, {"error": "lat/lon hors bornes"})
+            return self.send(200, reverse_geocode(lat, lon))
 
         if path == "/api/qso":
             return self.send(200, read_json(QSO_FILE, []))

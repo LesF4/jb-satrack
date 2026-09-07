@@ -15,19 +15,19 @@ fait dans le navigateur** (SGP4 via satellite.js). Il n'y a pas de base de
 données : la persistance, ce sont des fichiers JSON à plat.
 
 ```
-                    ┌──────────── navigateur ────────────┐
-   AMSAT/SatNOGS    │  index.html                        │
-   R4UAB/CelesTrak  │   ├─ style.css                     │
+                     ┌──────────── navigateur ────────────┐
+   AMSAT/SatNOGS     │  index.html                        │
+   R4UAB/CelesTrak   │   ├─ style.css                     │
    ARISS  Open-Meteo │   ├─ /vendor/leaflet.js  (carte)   │
-   Esri  jsDelivr    │   ├─ /vendor/satellite.min.js (SGP4)│
-        │            │   ├─ icons.js  (banque Reicon)     │
+   Nominatim (OSM)   │   ├─ /vendor/satellite.min.js (SGP4)│
+   Esri  jsDelivr    │   ├─ icons.js  (banque Reicon)     │
         │  HTTP      │   └─ app.js    (toute la logique)  │
         ▼            │        │  fetch /api/*             │
  ┌─────────────┐  HTTP        ▼                           │
  │  app.py     │◀────────────────────────────────────────┘
  │  (stdlib)   │
  │  - sert web/ + /vendor/ (cache local)
- │  - /api/* : station, TLE, ISS, météo, QSO, health
+ │  - /api/* : station, TLE, ISS, météo, reverse, QSO, health
  │  - thread de fond : refresh TLE/ISS/météo
  └──────┬──────┘
         │ lit/écrit
@@ -111,7 +111,15 @@ tolérant ; si la page change, l'onglet affiche « inconnu ».
 
 Open-Meteo `current` + `hourly` autour des `lat/lon` de la station. Renvoie
 `now` (+ `wind`, `cloud`) et éventuellement `later` (pictogramme à +3 h si la
-condition change). Table `WMO` : code OMM → (libellé, nom d'icône Reicon).
+condition change). Table `WMO` : code OMM → (libellé, nom d'icône Reicon). Le
+cache (30 min) est aussi considéré périmé si la station a bougé de >~0,1°.
+
+### 2.5b Géocodage inverse — `reverse_geocode`
+
+`GET /api/reverse?lat=&lon=` → Nominatim (OpenStreetMap), `urllib` standard.
+Pour le bouton « Me localiser » : coordonnées de l'appareil → nom de commune.
+Sans cache, appelé sur clic. `{"city": "..."}` ou `{"city": null}` sur toute
+erreur (jamais `500`). Bornes invalides → `400`.
 
 ### 2.6 Libs vendorisées
 
@@ -151,13 +159,13 @@ en silence** — une clé qui disparaît, une position fausse — pas une except
 | Prédiction | `findPasses`, `refine`, `crossEl`, `quality` | passages sur N heures ; `workStart/workEnd` = franchissements de `min_elevation_deg` (**fenêtre exploitable**) ; note omni (Zénith / rasant) |
 | Doppler | `dopplerPlan`, `rxTune/txTune`, `exportChirp`, `chirpRows` | plan de tuning par paliers de `tuning_step_khz` ; export CHIRP |
 | Rendu | `renderHeader`, `renderTleChip`/`tleAge`, `renderPassTable`, `selectPass`, `renderNextPass`, `renderPlan`, `renderOrient`, `renderMemo` | l'affichage ; `renderOrient` a 4 états : avant / se lève / exploitable / redescend |
-| Carte | `MAP` (IIFE) | Leaflet + tuiles Esri, trace au sol, empreinte radio (≥ minEl), terminateur jour/nuit, liaison station↔sat, suivi (centrage amorti), molette réécrite, météo |
+| Carte | `MAP` (IIFE) | Leaflet + tuiles Esri, trace au sol, empreinte radio (≥ minEl), terminateur jour/nuit, liaison station↔sat, suivi (centrage amorti), molette réécrite, météo ; `setStation()` = redéplace la maison + recentre après un changement de position |
 | Boucle | `tickClock` (1 s), `boot` | horloge, compte à rebours (fenêtre utile), `checkAlerts` ; boot = `Promise.all` station+catalogue+TLE puis intervalles |
 | Données | `matchTle` (**NORAD d'abord**), `computeAll`, `reloadTle`, `netReason`, `loadWeather`, `loadIssStatus`, `applyIssOverrides` | `computeAll` = cœur : pour chaque sat du catalogue → `matchTle` → `twoline2satrec` → `findPasses` ; trie, `selectPass` |
 | ISS | `applyIssOverrides` | applique le statut ARISS aux modes du catalogue ; **phonie (fm voix) en tête**, APRS/SSTV en dessous |
 | Az/El | `drawPolar` | vue polaire, cône de silence |
 | Journal | `saveQso` | `POST /api/qso` |
-| Config | `locatorToLatLon`, `openSetup`/`closeSetup`/`saveSetup`, `wireSetupModal` | formulaire station (bouton Réglages) ; **pas de modale bloquante au 1er lancement** |
+| Config | `locatorToLatLon` / `latLonToLocator`, `openSetup`/`closeSetup`/`saveSetup`, `locateFromDevice`, `wireSetupModal` | formulaire station (bouton Réglages) ; **pas de modale bloquante au 1er lancement** ; « Me localiser » = géoloc navigateur → locator + ville (`/api/reverse`) + fuseau ; `saveSetup` applique tout (header, `computeAll`, `MAP.setStation`, météo) |
 | Interface | `applyTheme`, `selectTab`/`wireTabs` | thème clair/sombre mémorisé, onglets ARIA |
 | Alerte | `ALERTS`, `dueAlerts`, `checkAlerts`, `notifyPass`, `toggleAlerts`, `confirmAlerts` | annonce sur **3 canaux** (pastille `toast`, son, `Notification`) ; seuils dans `station.alert` |
 | Son | `SFX`, `SND`, `clickSound`, `toggleSound` | Web Audio synthétisé, aucun fichier. `SND` = seul endroit où des fréquences sont écrites. Répartiteur de clics en phase **CAPTURE** (le son annonce ce que le clic *va* faire) |
