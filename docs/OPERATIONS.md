@@ -120,16 +120,33 @@ Détail : [`../packaging/README.md`](../packaging/README.md). Sorties dans
 
 ## Publier une version
 
-1. Mettre à jour [`CHANGELOG.md`](../CHANGELOG.md), `#define AppVersion` dans
-   `packaging/installer.iss`, la version dans `packaging/README.md`, et
+Procédure suivie à chaque version (exemples réels : v2.0.3, v2.0.4).
+
+1. **Vérifier** : `python app.py --selftest` (OK) et `/?selftest=1` (tout au vert)
+   dans la console.
+2. **Version** — mettre le même numéro partout : [`CHANGELOG.md`](../CHANGELOG.md)
+   (nouvelle section datée en tête), `#define AppVersion` dans
+   `packaging/installer.iss`, la version dans `packaging/README.md`,
    `docs/ETAT.md`. (La CI réécrit de toute façon `AppVersion` depuis le tag.)
-2. `git commit` + `git push origin master`.
-3. `git tag vX.Y.Z master && git push origin vX.Y.Z`.
-4. La **CI** (`.github/workflows/build.yml`) construit portable + installeur et
-   crée / met à jour la **Release** GitHub avec les deux fichiers.
-5. Pour partager : `gh release download vX.Y.Z -p "JB-SATRACK-portable.zip"` (ou
+3. **Documenter** — au fil de l'eau, pas à la fin : `MODIFICATIONS.md` (ce qui a
+   changé, pourquoi), `docs/JOURNAL.md` (entrée datée), `docs/DECISIONS.md` si un
+   choix a été tranché, `docs/API.md` / `ETAT.md` / etc. si le comportement
+   bouge, et le `JOURNAL.md` de l'atelier commun.
+4. `git commit` + `git push origin master`.
+5. `git tag vX.Y.Z master && git push origin vX.Y.Z`.
+6. La **CI** (`.github/workflows/build.yml`) construit portable + installeur et
+   crée / met à jour la **Release** GitHub avec les deux fichiers (~1 min 20 s).
+   Suivi : `gh run watch <id> --repo F4MAJ/jb-satrack --exit-status`.
+7. **Contrôler le binaire** : `gh release download vX.Y.Z` puis
+   `unzip -l JB-SATRACK-portable.zip` — vérifier que le changement du jour est
+   bien dans `JB-SATRACK/_internal/web/…` (et `PREMIER-DEMARRAGE.txt` à la
+   racine).
+8. Pour partager : `gh release download vX.Y.Z -p "JB-SATRACK-portable.zip"` (ou
    la page Releases), puis transmettre le fichier manuellement — le dépôt est
    **privé**, le destinataire n'a pas besoin de GitHub.
+
+> Pousser un tag `v*` **publie une Release** : ne le faire qu'avec l'accord de
+> F4MAJ.
 
 ### Branches
 
