@@ -39,6 +39,16 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 **Décidé** — voir `DECISIONS.md` (entrée 2026-09-08).
 
+**Publié**
+- Commit `1c23223` sur `master`. Tag **`v2.0.3`** poussé → CI GitHub Actions
+  (`Build Windows`, 1 min 10 s) → **Release `v2.0.3`** avec les deux binaires :
+  - `JB-SATRACK-portable.zip` (9,33 Mo) — SHA-256 `76891d9b…ce9459`
+  - `JB-SATRACK-Setup-2.0.3.exe` (9,01 Mo) — SHA-256 `f456f295…7348c`
+  Vérifié : le code du soir (`latLonToLocator`, `locateFromDevice`,
+  `MAP.setStation`, icône `Crosshairs`) est bien dans le bundle.
+- Sur le MacBook, pas de binaire : `python3 app.py` depuis les sources (aucune
+  dépendance). Un build macOS reste dans `TODO.md` (« Idées / plus tard »).
+
 **Note**
 - `data/station.json` avait été écrit en `JN19KK` pendant un test de JB dans
   Opera (géoloc + Enregistrer). Remis à la valeur versionnée (`JN37QS` / Illzach)
