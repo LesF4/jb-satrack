@@ -1,8 +1,9 @@
-# JB-SATRACK — modifications du 8 septembre 2026 (v2.0.3)
+# JB-SATRACK — modifications du 8 septembre 2026 (v2.0.3 → v2.0.4)
 
-> Ajout de « Me localiser » (position de l'ordinateur) dans les Réglages, et
-> correction : la maison bougeait dans les calculs mais pas sur la carte. Le
-> détail de la grosse mise à niveau v2.0.0 suit, plus bas.
+> v2.0.3 : « Me localiser » (position de l'ordinateur) dans les Réglages, et
+> correction — la maison bougeait dans les calculs mais pas sur la carte.
+> v2.0.4 : guide de premier démarrage dans le paquet Windows + copyright F4MAJ
+> renforcé. Le détail de la grosse mise à niveau v2.0.0 suit, plus bas.
 
 Fichiers touchés : [`app.py`](app.py), [`web/app.js`](web/app.js),
 [`web/index.html`](web/index.html), [`web/style.css`](web/style.css),
@@ -88,6 +89,34 @@ Aucune dépendance ajoutée (`urllib.parse` est dans la lib standard).
   navigateur bloque la géoloc — la saisie manuelle du locator reste disponible.
 - Le géocodage inverse et la météo demandent Internet **au moment du clic** ;
   hors ligne, tout dégrade proprement (locator quand même rempli, ville vide).
+
+## 5. v2.0.4 — guide de premier démarrage + copyright (paquet Windows)
+
+Pour que les OM qui installent l'appli sachent quoi faire sans connaître le
+projet.
+
+- **`packaging/PREMIER-DEMARRAGE.txt`** (UTF-8 BOM + CRLF, lisible dans le
+  Bloc-notes hérité) : lancer, ne pas fermer la fenêtre noire, puis
+  **Réglages → indicatif → « Me localiser » (ou taper le locator) → Enregistrer**,
+  plus SmartScreen, `%LOCALAPPDATA%`, fonctionnement hors ligne.
+- **`packaging/build.py`** copie ce fichier à la **racine** du dossier applicatif
+  (à côté de `JB-SATRACK.exe`, pas dans `_internal/`) après PyInstaller. Il entre
+  donc dans le `.zip` (le glob du zip prend tout le dossier) **et** dans
+  l'installeur (`Source: dist\JB-SATRACK\*`).
+- **`packaging/installer.iss`** :
+  - `LicenseFile=..\LICENSE` — la licence (« © 2026 F4MAJ — Tous droits
+    réservés », logiciel privé) s'affiche et doit être acceptée avant
+    l'installation ;
+  - `AppCopyright` + `VersionInfoCompany` + `VersionInfoCopyright` — le copyright
+    F4MAJ apparaît dans les propriétés de l'exe et l'entrée « Programmes
+    installés » ;
+  - raccourci menu Démarrer **« Premier démarrage (à lire) »** ; case
+    (décochée par défaut) « Lire le guide » en fin d'installation.
+- **`app.py`** : ligne de copyright ajoutée en tête ; coquille `873` → `8073`
+  corrigée dans l'en-tête.
+
+Aucun changement de code applicatif, aucune dépendance. `--selftest` et le
+selftest client restent à 24/24.
 
 ---
 

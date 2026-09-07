@@ -27,7 +27,10 @@ docker compose up -d          # expose 8073
 
 Dézipper `JB-SATRACK-portable.zip`, double-clic sur `JB-SATRACK.exe` (fenêtre
 console « NE FERME PAS », le navigateur s'ouvre). Ou l'installeur
-`JB-SATRACK-Setup-x.y.z.exe`. Données dans `%LOCALAPPDATA%\JB-SATRACK\`.
+`JB-SATRACK-Setup-x.y.z.exe` (affiche la licence F4MAJ à accepter). Données dans
+`%LOCALAPPDATA%\JB-SATRACK\`. Un `PREMIER-DEMARRAGE.txt` est fourni à côté de
+l'exe (et en raccourci menu Démarrer) : à donner aux OM qui installent l'appli —
+il explique le réglage de la station et le bouton « Me localiser ».
 
 ---
 

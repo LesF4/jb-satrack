@@ -2,7 +2,7 @@
 
 Dernière mise à jour : 2026-09-08
 
-- **Statut** : actif. Version **v2.0.3** (tags Git `v*` + Releases GitHub).
+- **Statut** : actif. Version **v2.0.4** (tags Git `v*` + Releases GitHub).
 - **Dépôt** : `F4MAJ/jb-satrack` (GitHub, **privé**). Branches : `master` (ligne
   principale) · `v1` (état figé d'avant la refonte de septembre 2026).
 - **Chemin local** : `D:\ClaudeProjets\jb-satrack` (dossier unique — l'ancien
@@ -33,6 +33,10 @@ Dernière mise à jour : 2026-09-08
   construit portable + installeur et les attache à la Release.
 - Exe figé : données persistantes dans `%LOCALAPPDATA%\JB-SATRACK\`, amorçage
   depuis le bundle au 1er lancement (utilisable hors ligne d'emblée).
+- **`PREMIER-DEMARRAGE.txt`** livré à la racine du `.zip` / de l'installeur
+  (raccourci menu Démarrer) : lancer, puis Réglages → indicatif → « Me
+  localiser » → Enregistrer. L'installeur affiche `LICENSE` (copyright F4MAJ)
+  avant l'installation.
 
 ## Sources de données (runtime)
 

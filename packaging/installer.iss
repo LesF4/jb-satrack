@@ -3,7 +3,7 @@
 ; Prérequis : packaging\dist\JB-SATRACK\  (produit par PyInstaller via build.py).
 
 #define AppName      "JB-SATRACK"
-#define AppVersion   "2.0.3"          ; la CI la réécrit depuis le tag ; garder synchro avec CHANGELOG.md
+#define AppVersion   "2.0.4"          ; la CI la réécrit depuis le tag ; garder synchro avec CHANGELOG.md
 #define AppPublisher "F4MAJ"
 #define AppURL       "https://github.com/F4MAJ/jb-satrack"
 #define AppExe       "JB-SATRACK.exe"
@@ -16,6 +16,10 @@ AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
+AppCopyright=© 2026 F4MAJ — Tous droits réservés
+VersionInfoCompany={#AppPublisher}
+VersionInfoCopyright=© 2026 F4MAJ — Tous droits réservés
+VersionInfoVersion={#AppVersion}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 UninstallDisplayIcon={app}\{#AppExe}
@@ -23,6 +27,8 @@ UninstallDisplayName={#AppName} {#AppVersion}
 OutputDir=dist
 OutputBaseFilename=JB-SATRACK-Setup-{#AppVersion}
 SetupIconFile=icon.ico
+; Affiché et à accepter avant l'installation (logiciel privé, tous droits réservés).
+LicenseFile=..\LICENSE
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -46,11 +52,13 @@ Source: "dist\JB-SATRACK\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversi
 
 [Icons]
 Name: "{group}\{#AppName}";                Filename: "{app}\{#AppExe}"
+Name: "{group}\Premier démarrage (à lire)"; Filename: "{app}\PREMIER-DEMARRAGE.txt"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}";          Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 Name: "{userstartup}\{#AppName}";          Filename: "{app}\{#AppExe}"; Tasks: startup
 
 [Run]
+Filename: "{app}\PREMIER-DEMARRAGE.txt"; Description: "Lire le guide de premier démarrage"; Flags: postinstall shellexec skipifsilent nowait unchecked
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]

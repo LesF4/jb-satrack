@@ -3,8 +3,10 @@
 JB-SATRACK — serveur de suivi satellites radioamateur + ISS
 Station F4MAJ / JN37QS
 
+Copyright © 2026 F4MAJ — Tous droits réservés. Logiciel privé (voir LICENSE).
+
 Aucune dépendance : bibliothèque standard Python 3.8+ uniquement.
-    python3 app.py                 -> http://0.0.0.0:873
+    python3 app.py                 -> http://0.0.0.0:8073
     python3 app.py --port 9000     -> autre port
 
 Le serveur :

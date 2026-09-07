@@ -3,6 +3,18 @@
 Format : le plus récent en haut. Les binaires sont dans les
 [Releases](https://github.com/F4MAJ/jb-satrack/releases) (dépôt privé).
 
+## v2.0.4 — 2026-09-08
+
+- **Guide de premier démarrage** (`PREMIER-DEMARRAGE.txt`) inclus dans le `.zip`
+  et l'installeur, à la racine à côté de l'exe + raccourci menu Démarrer :
+  comment lancer, puis **Réglages → indicatif → « Me localiser » → Enregistrer**.
+  Pensé pour les OM qui installent l'appli sans rien connaître du projet.
+- **Copyright renforcé** : l'installeur affiche `LICENSE` (« © 2026 F4MAJ — Tous
+  droits réservés ») à accepter avant installation ; le copyright F4MAJ est posé
+  dans les propriétés de `JB-SATRACK.exe` (`VersionInfoCompany` /
+  `VersionInfoCopyright`) ; ligne de copyright ajoutée en tête de `app.py`.
+- Corrigé : coquille `873` → `8073` dans l'en-tête de `app.py`.
+
 ## v2.0.3 — 2026-09-08
 
 - **Bouton « Me localiser »** dans la fenêtre Réglages, sous le champ Locator :

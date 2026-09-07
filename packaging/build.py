@@ -70,6 +70,14 @@ def main():
          os.path.join(HERE, "jb-satrack.spec")], cwd=ROOT)
     print("       ->", APPDIR)
 
+    # Guide de premier démarrage : à la RACINE du dossier applicatif (à côté de
+    # l'exe, pas dans _internal/) -> visible dès qu'on dézippe, et repris tel
+    # quel par le glob de l'installeur (Source: dist\JB-SATRACK\*).
+    readme = os.path.join(HERE, "PREMIER-DEMARRAGE.txt")
+    if os.path.exists(readme):
+        shutil.copy2(readme, APPDIR)
+        print("       + PREMIER-DEMARRAGE.txt")
+
     if args.zip:
         zpath = os.path.join(DIST, "JB-SATRACK-portable")
         if os.path.exists(zpath + ".zip"):

@@ -13,7 +13,7 @@ l'installeur, optionnel) sont des outils externes.
 pip install pyinstaller
 python packaging\build.py                 :: -> packaging\dist\JB-SATRACK\  (dossier applicatif)
 python packaging\build.py --zip           :: + packaging\dist\JB-SATRACK-portable.zip  (à envoyer tel quel)
-python packaging\build.py --installer     :: + packaging\dist\JB-SATRACK-Setup-2.0.3.exe
+python packaging\build.py --installer     :: + packaging\dist\JB-SATRACK-Setup-2.0.4.exe
 python packaging\build.py --clean --zip   :: repart de zéro, puis zip
 ```
 
@@ -21,7 +21,7 @@ python packaging\build.py --clean --zip   :: repart de zéro, puis zip
 
 | Sortie | Quoi | Comment on l'utilise |
 |---|---|---|
-| `JB-SATRACK\` | dossier applicatif (exe + `_internal\`) | double-clic sur `JB-SATRACK.exe` |
+| `JB-SATRACK\` | dossier applicatif (exe + `_internal\` + `PREMIER-DEMARRAGE.txt`) | double-clic sur `JB-SATRACK.exe` |
 | `JB-SATRACK-portable.zip` (`--zip`) | le dossier ci-dessus, zippé | **l'envoyer à un copain** : il dézippe, ouvre `JB-SATRACK\JB-SATRACK.exe` |
 | `JB-SATRACK-Setup-x.y.z.exe` (`--installer`) | installeur | un seul fichier à envoyer ; Next/Next/Finish, raccourci menu Démarrer, désinstalleur |
 
@@ -37,9 +37,10 @@ python packaging\build.py --clean --zip   :: repart de zéro, puis zip
 
 | Fichier | Rôle |
 |---|---|
-| `build.py` | orchestrateur : icône → PyInstaller → (Inno Setup) |
+| `build.py` | orchestrateur : icône → PyInstaller → copie `PREMIER-DEMARRAGE.txt` → (Inno Setup) |
 | `jb-satrack.spec` | recette PyInstaller (**onedir**, console, sans UPX) ; embarque `web/`, le catalogue, le TLE de secours, un cache TLE d'amorçage et `data/vendor/` |
-| `installer.iss` | script Inno Setup |
+| `PREMIER-DEMARRAGE.txt` | guide utilisateur — copié à la racine du dossier applicatif (à côté de l'exe), donc dans le `.zip` et l'installeur ; raccourci menu Démarrer |
+| `installer.iss` | script Inno Setup ; affiche `LICENSE` (copyright F4MAJ) avant l'installation, pose le copyright dans les propriétés de l'exe |
 | `make_icon.py` | génère `icon.ico` (satellite orange / orbite turquoise), stdlib seule |
 | `icon.ico` | icône générée (versionnée) |
 | `dist/`, `build/` | sorties (ignorées par git) |

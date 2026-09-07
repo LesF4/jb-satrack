@@ -4,6 +4,33 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-08 (suite) — Guide de premier démarrage + copyright (v2.0.4)
+
+**Contexte**
+- Les OM à qui JB enverra le `.zip` / l'installeur ne connaissent pas le projet :
+  il leur faut un mode d'emploi court, et la station par défaut (F4MAJ / JN37QS)
+  doit être remplacée par la leur.
+- JB : « n'oublie pas qu'on copyright ce logiciel F4MAJ ».
+
+**Fait**
+- `packaging/PREMIER-DEMARRAGE.txt` (UTF-8 BOM + CRLF) : lancer → Réglages →
+  indicatif → « Me localiser » (ou locator) → Enregistrer, + SmartScreen,
+  `%LOCALAPPDATA%`, hors ligne.
+- `packaging/build.py` : copie ce fichier à la racine du dossier applicatif
+  après PyInstaller → présent dans le `.zip` **et** l'installeur.
+- `packaging/installer.iss` : `LicenseFile=..\LICENSE` (licence F4MAJ à accepter
+  avant install), `AppCopyright` + `VersionInfoCompany/Copyright` (propriétés de
+  l'exe), raccourci menu Démarrer « Premier démarrage (à lire) », case décochée
+  « Lire le guide » en fin d'install. Version 2.0.4.
+- `app.py` : ligne de copyright en tête ; coquille `873` → `8073` corrigée.
+- Copyright déjà en place par ailleurs (rappel) : `LICENSE` (logiciel privé,
+  tous droits réservés, composants tiers listés), pied de page de l'appli,
+  `AppPublisher F4MAJ` de l'installeur.
+- Aucun code applicatif touché. `--selftest` OK, selftest client 24/24.
+
+**À faire**
+- Pousser le tag `v2.0.4` (→ CI → binaires) après validation de JB.
+
 ## 2026-09-08 — « Me localiser » + la maison bouge enfin sur la carte (v2.0.3)
 
 **Contexte**

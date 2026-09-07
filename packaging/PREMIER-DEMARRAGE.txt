@@ -1,0 +1,60 @@
+﻿JB-SATRACK — Premier démarrage
+==============================
+
+Suivi des satellites radioamateur et de l'ISS.
+Logiciel privé — © 2026 F4MAJ — Tous droits réservés.
+
+
+1. LANCER
+---------
+Double-cliquez sur JB-SATRACK.exe (ou le raccourci du menu Démarrer).
+Une fenêtre noire s'ouvre : NE LA FERMEZ PAS, c'est le serveur.
+Votre navigateur s'ouvre tout seul sur l'application.
+Sinon, ouvrez : http://localhost:8073
+
+Au tout premier lancement, Windows peut afficher un écran bleu
+« Windows a protégé votre PC » (application non signée) :
+cliquez sur « Informations complémentaires » puis « Exécuter quand même ».
+
+
+2. RÉGLER VOTRE STATION  (à faire une seule fois)
+------------------------------------------------
+L'application démarre sur la station F4MAJ (Illzach, locator JN37QS).
+Pour mettre la vôtre :
+
+  a. Cliquez sur « Réglages », en haut à droite.
+  b. Saisissez votre INDICATIF.
+  c. Pour la position, au choix :
+       - tapez votre LOCATOR (ex. JN37QS), ou
+       - cliquez sur « Me localiser » (juste sous le champ Locator) :
+         le navigateur demande l'autorisation d'utiliser votre
+         position ; vous acceptez, et le locator, la ville et le
+         fuseau horaire se remplissent tout seuls. Pratique en
+         déplacement quand on ne connaît pas son locator exact.
+  d. Cliquez sur « Enregistrer ».
+
+La carte se recentre sur chez vous et tous les passages sont
+recalculés.
+
+Remarques sur « Me localiser » :
+  - il faut Internet AU MOMENT du clic (pour retrouver le nom de la
+    ville) ; le locator, lui, se calcule même hors ligne ;
+  - si le bouton ne fait rien : Paramètres Windows > Confidentialité
+    et sécurité > Service de localisation doit être activé pour votre
+    navigateur.
+
+
+3. BON À SAVOIR
+---------------
+  - Vos réglages et votre journal de trafic sont rangés dans :
+        %LOCALAPPDATA%\JB-SATRACK\
+    (ils survivent à une mise à jour de l'application).
+  - Après le premier lancement, l'application fonctionne hors ligne ;
+    elle re-télécharge les éléments orbitaux dès qu'Internet revient.
+  - Réglages avancés (antenne, radio, seuils d'alerte) : fichier
+    station.json dans le dossier ci-dessus.
+  - Pour arrêter l'application : fermez la fenêtre noire.
+
+
+Aide, mises à jour, versions :
+https://github.com/F4MAJ/jb-satrack

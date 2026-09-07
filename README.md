@@ -62,6 +62,10 @@ journal, caches) et fonctionne hors ligne dès le premier lancement. Non signé 
 avertissement SmartScreen au 1er lancement : **Informations complémentaires →
 Exécuter quand même**. Détails : [`packaging/README.md`](packaging/README.md).
 
+Un `PREMIER-DEMARRAGE.txt` accompagne l'exe (et l'installeur affiche la licence
+F4MAJ) : il explique à celui qui installe l'appli comment régler sa station —
+**Réglages → indicatif → « Me localiser » → Enregistrer**.
+
 La CI (`.github/workflows/build.yml`) reconstruit portable + installeur à chaque
 tag `v*` et les joint à la Release GitHub (dépôt privé).
 
