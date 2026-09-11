@@ -35,6 +35,10 @@ docker compose up -d
 
 Interface : `http://<ip-de-jb-server>:8073`
 
+Le kiosque HDMI réellement déployé utilise une instance isolée, un lancement
+SSH manuel, des limites CPU/RAM et des TLE forcés au démarrage puis chaque
+heure. Voir [`docs/JB_SERVER_KIOSK.md`](docs/JB_SERVER_KIOSK.md).
+
 ### Sans Docker
 
 Python 3.8+ suffit, **aucune dépendance à installer** :

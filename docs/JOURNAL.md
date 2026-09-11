@@ -4,6 +4,20 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-11 — Kiosque HDMI autonome sur JB-SERVER
+
+**Fait** (accord de JB)
+- Instance Linux séparée sur l'écran HDMI, Cage + Chromium sur `tty7`, avec
+  lancement et arrêt manuels par SSH depuis Windows.
+- Serveur limité à `127.0.0.1:8073`, compte sans privilège et limites CPU/RAM.
+- Station vérifiée : F4MAJ, JN37QS, Illzach, Europe/Paris.
+- 1 602 TLE au test, rafraîchis au lancement puis chaque heure.
+- Rendu complet vérifié ; compteur orange seulement pendant la fenêtre utile.
+- Sauvegarde et rollback documentés. Aucun démarrage automatique ni jeton
+  GitHub installé sur le serveur.
+
+Référence : [`JB_SERVER_KIOSK.md`](JB_SERVER_KIOSK.md).
+
 ## 2026-09-08 (ménage) — Suppression des Releases périmées v2.0.0 → v2.0.2
 
 **Fait** (accord de JB, périmètre choisi explicitement)

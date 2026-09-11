@@ -1,14 +1,16 @@
 # État — JB-SATRACK
 
-Dernière mise à jour : 2026-09-08
+Dernière mise à jour : 2026-09-11
 
 - **Statut** : actif. Version **v2.0.4** (tags Git `v*` + Releases GitHub).
 - **Dépôt** : `F4MAJ/jb-satrack` (GitHub, **privé**). Branches : `master` (ligne
   principale) · `v1` (état figé d'avant la refonte de septembre 2026).
 - **Chemin local** : `D:\ClaudeProjets\jb-satrack` (dossier unique — l'ancien
   `newapp\…` et les copies/zip parasites ont été supprimés le 2026-09-06).
-- **Où ça tourne** : serveur web local, port **8073**. Prévu pour tourner en
-  continu sur JB-SERVER, consultable depuis n'importe quel navigateur du réseau.
+- **Où ça tourne** : Windows et macOS restent indépendants. Une instance Linux
+  autonome est déployée sur l'écran HDMI de JB-SERVER, liée à
+  `127.0.0.1:8073`, démarrée manuellement par SSH et limitée en ressources. Voir
+  [`JB_SERVER_KIOSK.md`](JB_SERVER_KIOSK.md).
 
 ## Stack
 

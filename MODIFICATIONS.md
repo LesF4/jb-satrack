@@ -1,4 +1,14 @@
-# JB-SATRACK — modifications du 8 septembre 2026 (v2.0.3 → v2.0.4)
+# JB-SATRACK — modifications et exploitation
+
+## 11 septembre 2026 — documentation du kiosque JB-SERVER
+
+Documentation uniquement : ajout de `docs/JB_SERVER_KIOSK.md` et liens depuis
+le README, `CLAUDE.md`, l'état, les opérations et le journal. Elle décrit le
+déploiement HDMI autonome, les limites CPU/RAM, les TLE automatiques, les
+commandes SSH et le rollback. Aucun code applicatif ni numéro de version n'est
+modifié par ce commit.
+
+# Modifications du 8 septembre 2026 (v2.0.3 → v2.0.4)
 
 > v2.0.3 : « Me localiser » (position de l'ordinateur) dans les Réglages, et
 > correction — la maison bougeait dans les calculs mais pas sur la carte.

@@ -23,6 +23,13 @@ et ouvre le navigateur.
 docker compose up -d          # expose 8073
 ```
 
+### Kiosque HDMI de JB-SERVER
+
+L'instance déployée utilise Cage + Chromium sur `tty7`, un compte dédié et des
+unités systemd en lancement manuel. Elle n'utilise pas le Compose ci-dessus et
+n'expose pas 8073 au LAN. Commandes, limites et rollback :
+[`JB_SERVER_KIOSK.md`](JB_SERVER_KIOSK.md).
+
 ### Application Windows
 
 Dézipper `JB-SATRACK-portable.zip`, double-clic sur `JB-SATRACK.exe` (fenêtre

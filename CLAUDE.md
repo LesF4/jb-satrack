@@ -7,6 +7,9 @@ et servies sur `/vendor/…`. Garder ce schéma pour toute nouvelle dépendance 
 
 Le cadrage produit — pour qui, contre quoi, ce qui a été écarté — est dans
 [`PRODUIT.md`](PRODUIT.md). Le système visuel est dans [`DESIGN.md`](DESIGN.md).
+Le kiosque HDMI réellement déployé sur JB-SERVER est décrit dans
+[`docs/JB_SERVER_KIOSK.md`](docs/JB_SERVER_KIOSK.md). Lire cette fiche avant
+toute intervention sur l'instance Linux.
 
 ## Vérifier une modification
 
