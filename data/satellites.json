@@ -258,6 +258,27 @@
           "note": "Orbite 6000 km : visible plus d'une heure, DX possible. Nécessite modem (Digirig + soundmodem)."
         }
       ]
+    },
+    {
+      "id": "AO-123",
+      "name": "AO-123 (ASRTU-1)",
+      "norad": 61781,
+      "match": [
+        "AO-123",
+        "ASRTU-1"
+      ],
+      "priority": 10,
+      "modes": [
+        {
+          "label": "Répéteur FM V/U",
+          "type": "fm",
+          "up": 145.85,
+          "down": 435.4,
+          "mod": "FM",
+          "ctcss": 67.0,
+          "note": "CTCSS 67 Hz obligatoire. Télémétrie après chaque passage d'émission (AMSAT)."
+        }
+      ]
     }
   ]
 }

@@ -51,6 +51,13 @@ Mesuré sur `data/satellites.json` :
 Quatre cibles phonie seulement, dont l'ISS qui n'a son répéteur allumé que par périodes.
 La moitié du catalogue sert le linéaire SSB, qui demande un poste BLU.
 
+> **Décision révisée le 24/09/2026 par F4MAJ** : le catalogue devient **automatique** —
+> tous les satellites radioamateurs **trafiquables** (FM, linéaire, digipeater) d'après le
+> statut AMSAT, + ISS, fréquences SatNOGS (`satcatalog.py`). Les balises qu'on ne peut
+> qu'écouter restent écartées. Le coût de maintenance invoqué ci-dessous est absorbé
+> par la génération automatique ; les entrées de `satellites.json` restent prioritaires
+> quand une fréquence a été vérifiée à la main. Le texte d'origine est conservé.
+
 **La bonne action n'est pas de passer à 60 satellites** — ce serait servir un public qui
 n'est pas celui-là. C'est de **densifier le FM** et d'assumer le linéaire comme
 secondaire. Chaque satellite ajouté est une ligne de fréquences à vérifier sur AMSAT et
@@ -66,7 +73,7 @@ sat par sat.
 | **RTL-SDR : le serveur reçoit et décode** | Abandonné. SkyRoof occupe cette case, mieux équipé, et signé. Casserait aussi la promesse « bibliothèque standard seule, rien à installer » : il faudrait du DSP, du natif, une chaîne de décodage à maintenir |
 | **Mode guidé « ce soir »** | **Construit, essayé, retiré.** Une prise de plein écran qui donnait une consigne à la fois, à l'écran et à voix haute, avec une répétition accélérée du passage. Voir §4 |
 | **Assistant de configuration zéro-config** | Pas retenu pour l'instant. Ville en entrée, locator et fuseau devinés, catalogue de postes. N'a de sens qu'au moment de diffuser |
-| **Élargir à 60 satellites** | Voir §2 : mauvais problème |
+| **Élargir à 60 satellites** | Voir §2 : mauvais problème — **révisé le 24/09/2026** : catalogue automatique des trafiquables (31) |
 
 ---
 

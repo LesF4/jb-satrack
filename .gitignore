@@ -1,6 +1,7 @@
 data/tle_cache.json
 data/iss_status.json
 data/weather_cache.json
+data/catalog_auto.json
 data/vendor/
 data/qso.json
 __pycache__/

@@ -108,7 +108,7 @@ permission de géolocalisation se demande au navigateur ; ça marche depuis
 `localhost` / `127.0.0.1`. À l'enregistrement, la maison se déplace sur la carte,
 la vue se recentre et tous les passages sont recalculés.
 
-Le catalogue des satellites et leurs fréquences est dans `data/satellites.json` — facile à éditer pour ajouter un satellite ou corriger une fréquence.
+Le catalogue est **automatique** : tous les satellites radioamateurs trafiquables (FM, linéaire, digipeater) d'après le [statut AMSAT](https://www.amsat.org/status/), + ISS, fréquences SatNOGS, reconstruit chaque jour (`satcatalog.py`, cache `data/catalog_auto.json`). `data/satellites.json` contient les entrées **vérifiées à la main**, toujours présentes et prioritaires : c'est là qu'on corrige une fréquence ou une tonalité CTCSS.
 
 ## Méthode de travail avec le FTM-500D
 
@@ -155,7 +155,8 @@ Ces routes sont exploitables par **JB-AI** : par exemple interroger `/api/tle` e
 app.py                 serveur (bibliothèque standard Python uniquement)
 DESIGN.md              système de design — palette, règles, décisions, mesures
 PRODUIT.md             cadrage produit — pour qui, contre quoi, ce qui a été écarté
-data/satellites.json   catalogue fréquences — éditable
+data/satellites.json   entrées vérifiées à la main (prioritaires) — éditable
+data/catalog_auto.json catalogue automatique (généré chaque jour, ne pas éditer)
 data/station.json      configuration station (créé au 1er lancement)
 data/vendor/           satellite.js, leaflet.js/css, icônes Reicon, polices — cache 1er lancement
 web/index.html         interface

@@ -34,6 +34,8 @@ import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import satcatalog
+
 if getattr(sys, "frozen", False):
     # exécutable PyInstaller : ressources embarquées (lecture seule) dans le
     # dossier temporaire d'extraction ; données persistantes ailleurs.
@@ -158,7 +160,8 @@ WMO = {
 
 STATION_FILE = os.path.join(DATA, "station.json")
 QSO_FILE = os.path.join(DATA, "qso.json")
-SATS_FILE = os.path.join(SEED, "satellites.json")
+SATS_FILE = os.path.join(SEED, "satellites.json")      # entrées écrites à la main (prioritaires)
+CATALOG_AUTO = os.path.join(DATA, "catalog_auto.json")  # liste radioamateur complète, voir satcatalog.py
 
 DEFAULT_STATION = {
     "callsign": "F4MAJ",
@@ -379,6 +382,31 @@ def refresh_tle(force=False):
     with _lock:
         write_json(TLE_CACHE, cache)
     return cache
+
+
+def served_catalog():
+    """Catalogue servi à la page : la liste automatique si elle existe (sinon le
+    fichier écrit à la main), jamais le réseau. Une entrée AUTOMATIQUE sans TLE est
+    retirée : sinon elle finirait dans le bandeau « TLE absents », qui doit rester
+    réservé aux vrais soucis. Une entrée écrite à la main reste, et y figure."""
+    cat = read_json(CATALOG_AUTO, None) or read_json(SATS_FILE, {"satellites": []})
+    have = {v.get("norad") for v in (read_json(TLE_CACHE, {}).get("sats") or {}).values()}
+    if have - {None}:
+        cat = dict(cat, satellites=[x for x in cat.get("satellites", [])
+                                    if x.get("source") != "auto" or x.get("norad") in have])
+    return cat
+
+
+def catalog_worker():
+    """Reconstruit la liste automatique une fois par jour (satcatalog.MAX_AGE),
+    en tâche de fond : la page n'attend jamais."""
+    while True:
+        try:
+            satcatalog.load(CATALOG_AUTO, SATS_FILE,
+                            lambda u: http_get(u, timeout=60, ua=TLE_UA), log)
+        except Exception as e:
+            log("worker catalogue : %s" % e)
+        time.sleep(6 * 3600)
 
 
 def tle_worker():
@@ -793,7 +821,7 @@ class Handler(BaseHTTPRequestHandler):
                                              read_json(STATION_FILE, {})))
 
         if path == "/api/satellites":
-            return self.send(200, read_json(SATS_FILE, {"satellites": []}))
+            return self.send(200, served_catalog())
 
         if path == "/api/tle":
             # La page ne doit JAMAIS attendre le réseau au chargement. Si un
@@ -1025,6 +1053,9 @@ def selftest():
                 pool[k] = r
     assert len(pool) == 1 and pool[25544]["name"] == "ISS (ZARYA)", "fusion TLE : le plus récent doit gagner"
 
+    # Catalogue automatique : classement AMSAT/SatNOGS (satcatalog.py).
+    satcatalog.selftest()
+
     print("selftest OK")
 
 
@@ -1073,6 +1104,7 @@ def main():
     threading.Thread(target=lambda: ensure_leaflet_css(), daemon=True).start()
     threading.Thread(target=lambda: ensure_fonts(), daemon=True).start()
     threading.Thread(target=tle_worker, daemon=True).start()
+    threading.Thread(target=catalog_worker, daemon=True).start()
 
     log("JB-SATRACK sur http://%s:%d" % (args.host, args.port))
     if getattr(sys, "frozen", False):

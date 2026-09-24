@@ -6,6 +6,22 @@ partir de v2.0.3** ; les Releases v2.0.0–v2.0.2 (et leurs tags) ont été
 supprimées le 2026-09-08, périmées et jamais téléchargées. L'historique texte
 ci-dessous est conservé.
 
+## Non publié — 2026-09-24
+
+- **Catalogue automatique : tous les satellites radioamateurs trafiquables + ISS.**
+  Décision de F4MAJ du 24/09 (voir `PRODUIT.md` §2, qui disait l'inverse). Nouveau
+  module `satcatalog.py` : liste du statut AMSAT, catégories qu'on peut trafiquer
+  (FM, linéaire, digipeater — pas les balises, télémétrie, SSTV, musique ni QO-100,
+  géostationnaire), NORAD via le TLE AMSAT ou SatNOGS, fréquences SatNOGS. Les
+  entrées de `data/satellites.json` restent **prioritaires et toujours présentes**
+  (fréquences vérifiées à la main). Reconstruit une fois par jour en tâche de fond
+  (`data/catalog_auto.json`) ; hors ligne, la dernière liste reste servie. 31
+  satellites le 24/09 (contre 9).
+- **AO-123 (ASRTU-1)** ajouté à la main : répéteur FM 145,850 / 435,400, CTCSS 67 Hz
+  obligatoire (absent de SatNOGS).
+- Le même module est embarqué dans l'horloge Ulanzi (projet `Ulanzi U-Clock II`,
+  JB-PIXBAR) : les deux montrent la même liste.
+
 ## v2.0.4 — 2026-09-08
 
 - **Guide de premier démarrage** (`PREMIER-DEMARRAGE.txt`) inclus dans le `.zip`

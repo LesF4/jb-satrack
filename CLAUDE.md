@@ -31,6 +31,18 @@ cela ne lève d'exception, donc rien ne le signalerait autrement. Toute logique
 ajoutée dans cette catégorie mérite une ligne de plus dans `selfTest()`
 (`web/app.js`) ou `selftest()` (`app.py`) — pas une suite de tests.
 
+## Catalogue : `satcatalog.py`, partagé avec l'horloge
+
+`/api/satellites` sert `data/catalog_auto.json` (généré par `satcatalog.py` une fois par
+jour, en tâche de fond : la page n'attend jamais le réseau), à défaut `satellites.json`.
+Les entrées de `satellites.json` sont **prioritaires et toujours présentes**. Une entrée
+automatique sans TLE est retirée côté serveur pour ne pas polluer le bandeau « TLE
+absents ».
+
+**Ce module est copié tel quel** dans `D:/ClaudeProjets/Ulanzi U-Clock II/` (horloge
+JB-PIXBAR sur JB-SERVER), avec `satellites.json`. Toute modification de l'un des deux
+fichiers doit y être recopiée puis redéployée, sinon l'horloge et le tracker divergent.
+
 ## Configuration de la station : le contrat
 
 `data/station.json` est **partiel par construction**. Il a été écrit par une version
