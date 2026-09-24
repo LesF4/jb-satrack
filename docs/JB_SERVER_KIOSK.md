@@ -1,6 +1,6 @@
 # Kiosque HDMI sur JB-SERVER
 
-État au 11 septembre 2026 : **déployé et actif en lancement manuel**. Cette
+État au 24 septembre 2026 : **déployé, validé et conservé en lancement manuel**. Cette
 fiche décrit l'instance Linux autonome affichée sur l'écran HDMI de JB-SERVER.
 
 ## Objectif
@@ -10,15 +10,14 @@ fiche décrit l'instance Linux autonome affichée sur l'écran HDMI de JB-SERVER
 - Commander le kiosque depuis Windows par SSH, sans clavier ni souris.
 - Conserver un démarrage manuel pendant la période d'essai.
 
-Le code déployé vient du commit `47402ab` de `packaging-linux`. Ses fichiers
-fonctionnels `app.py` et `web/` sont identiques à `master` au commit `3e2f4c9` ;
-les deux commits supplémentaires concernent le packaging et la documentation.
+Le code déployé vient du commit `bd83cb0` de `master`. La release précédente
+`47402ab` est conservée sur le serveur pour un retour arrière immédiat.
 
 ## Installation réelle
 
 | Élément | Emplacement / comportement |
 | --- | --- |
-| Code | `/opt/jb-satrack-kiosk/releases/47402ab` |
+| Code | `/opt/jb-satrack-kiosk/releases/bd83cb0` |
 | Version active | lien `/opt/jb-satrack-kiosk/current` |
 | Données Linux | `/opt/jb-satrack-kiosk/data` |
 | Profil navigateur | `/home/jb-kiosk/snap/chromium/common/kiosk-profile` |
@@ -32,20 +31,28 @@ L'installation ne modifie ni Caddy, UFW, Docker ou Wavelog. Elle a ajouté Cage
 et ses 33 dépendances sans mettre à jour ni supprimer de paquet existant, puis
 Chromium stable via le Snap Canonical. Aucun redémarrage n'a été nécessaire.
 
-## Réglages validés et TLE
+## Réglages validés, catalogue et TLE
 
 - Indicatif `F4MAJ`, locator `JN37QS`, ville `Illzach`, fuseau `Europe/Paris`.
-- 1 602 TLE observés après le rafraîchissement complet.
+- 1 624 TLE observés après le rafraîchissement complet du 24 septembre.
 - Rafraîchissement forcé après chaque lancement, puis toutes les heures tant
   que l'application fonctionne. Le bouton manuel n'est pas nécessaire.
 - Le timer ne démarre pas le kiosque au boot de JB-SERVER.
+- Le catalogue automatique contient 31 satellites trafiquables et son cache
+  persistant est `/opt/jb-satrack-kiosk/data/catalog_auto.json`.
+- Les sources AMSAT et SatNOGS sont interrogées hors du chemin critique de la
+  page. Le premier calcul a abouti en environ six minutes malgré des délais
+  d'expiration IPv6 ; le cache évite de bloquer l'interface.
+- AO-91 est validé à 435,250 MHz en montée et 145,960 MHz en descente, sans
+  CTCSS. AO-123 est validé avec un CTCSS de 67 Hz.
 
 ## Ressources
 
 Python est limité à 256 Mio et 50 % d'un cœur. La session qui contient Cage et
 tous les processus Chromium Snap est limitée à 2 Gio, sans swap, et deux cœurs
-sur les 16 processeurs logiques. Pendant l'essai, elle consommait environ 700 à
-970 Mio ; Python environ 55 Mio RSS. Aucun OOM, swap ou service systemd en échec
+sur les 16 processeurs logiques. Pendant l'essai initial, elle consommait environ
+700 à 970 Mio ; le démarrage de `bd83cb0` a culminé à environ 27 Mio pour Python.
+Aucun OOM, swap ou service systemd en échec
 n'a été observé. Les cinq conteneurs préexistants sont restés actifs et MariaDB
 saine. Ces limites réduisent le risque ; elles ne remplacent pas la surveillance.
 
@@ -98,11 +105,18 @@ et tester la nouvelle version hors de `current`, basculer le lien, vérifier
 `/api/health`, le rendu et les services critiques, puis rétablir l'ancien lien
 si un contrôle échoue. Aucun jeton GitHub n'est installé sur JB-SERVER.
 
+La mise à jour du 24 septembre 2026 vers `bd83cb0` a suivi cette procédure :
+selftest hors production, bascule atomique, contrôle de santé, catalogue, rendu
+Cage/Chromium et services critiques, puis retour volontaire à l'état arrêté.
+
 ## Sauvegarde et retour arrière
 
 Inventaires avant/après, sources, unités et documentation sont dans
 `/var/backups/jb-system-ia/jbsatrack-kiosk-20260911`. L'archive de référence a
 été relue et son inventaire dpkg vérifié par SHA-256.
+La sauvegarde précédant `bd83cb0` se trouve dans
+`/var/backups/jb-system-ia/jbsatrack-kiosk-20260924-pre-bd83cb0` et ses sommes
+SHA-256 ont été vérifiées.
 
 Retour immédiat : arrêter les deux unités, terminer uniquement `jb-kiosk`, puis
 revenir à `tty1`. Les unités sont statiques et non activées au démarrage. Pour
@@ -110,6 +124,5 @@ un retrait complet, comparer les inventaires et simuler la suppression des
 seuls paquets ajoutés. Ne jamais utiliser `autoremove` aveuglément ni restaurer
 globalement la base dpkg sur le serveur actif.
 
-Restent à valider : observation prolongée, alertes audio éventuelles, vraie mise
-à jour de version avec rollback, puis présence dans les sauvegardes Restic et
-Proton après leur prochaine exécution.
+Restent à valider : observation prolongée, alertes audio éventuelles, puis
+présence dans les sauvegardes Restic et Proton après leur prochaine exécution.
