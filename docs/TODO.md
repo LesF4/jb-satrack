@@ -4,9 +4,11 @@
 - [ ] Rien en cours.
 
 ## À faire
+- [ ] Vérifier le CTCSS d'AO-91 (67 Hz au catalogue, SatNOGS : plus de CTCSS depuis 06/2026).
+- [ ] Colonne « Élév. max » parfois fausse dans la liste des passages (ISS 28° vs qualité Basse).
 - [ ] **Sous-menu APRS / SSTV / données** pour l'ISS (aujourd'hui seule la phonie
       est mise en avant ; APRS reste dans l'onglet « Radio de l'ISS »).
-- [ ] Étendre le catalogue de fréquences au-delà des satellites principaux.
+- [x] 2026-09-24 — Étendre le catalogue : automatique, 31 satellites trafiquables (`satcatalog.py`).
 - [ ] Robustifier le parsing ARISS (fallback propre si la mise en page change).
 
 ## Idées / plus tard

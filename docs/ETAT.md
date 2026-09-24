@@ -1,6 +1,9 @@
 # État — JB-SATRACK
 
-Dernière mise à jour : 2026-09-11
+Dernière mise à jour : 2026-09-24
+
+> **2026-09-24** : catalogue automatique (31 satellites radioamateurs trafiquables + ISS,
+> `satcatalog.py`, cache `data/catalog_auto.json`) et lanceur Firefox — dans `master` (reporté depuis la branche `catalogue-auto`).
 
 - **Statut** : actif. Version **v2.0.4** (tags Git `v*` + Releases GitHub).
 - **Dépôt** : `F4MAJ/jb-satrack` (GitHub, **privé**). Branches : `master` (ligne

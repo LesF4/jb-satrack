@@ -4,6 +4,19 @@
 > `README.md` et `CLAUDE.md` : ce sont des choix déjà en place, pas des décisions
 > prises ce jour-là.
 
+## 2026-09-24 — Catalogue automatique : satellites radioamateurs trafiquables + ISS (révise PRODUIT.md §2)
+
+- **Contexte / problème** : 9 satellites figés ; JB veut la liste des satellites
+  radioamateurs, identique dans JB-SATRACK et dans l'horloge JB-PIXBAR.
+- **Options envisagées** : liste AMSAT complète (68, balises comprises) ; trafiquables
+  seulement ; statu quo.
+- **Choix** : trafiquables (FM, linéaire, digipeater) + ISS, `satcatalog.py`, une fois
+  par jour ; entrées manuelles prioritaires. Choix de JB (question posée avec les chiffres).
+- **Raison** : les balises ne se trafiquent pas ; le coût de maintenance cité en §2 est
+  absorbé par la génération automatique.
+- **Conséquences** : 31 satellites (24/09) ; fréquences SatNOGS « non vérifiées à la
+  main » pour les ajouts ; le module est copié dans JB-PIXBAR (à recopier s'il change).
+
 ## 2026-09-08 — « Me localiser » : géoloc navigateur + géocodage inverse serveur
 
 - **Contexte** : le locator manuel convient (il sert aussi à regarder les

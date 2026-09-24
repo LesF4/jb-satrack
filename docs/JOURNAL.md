@@ -4,6 +4,39 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-24 — Catalogue automatique (31 satellites trafiquables) + lanceur Firefox
+
+**Contexte**
+- En branchant l'horloge Ulanzi (projet JB-PIXBAR) sur les passages, JB constate que
+  JB-SATRACK ne suit que 9 satellites figés à la main (AO-123 absent) et veut
+  « la liste des satellites radioamateurs, + ISS, dans l'horloge et dans JB-SATRACK ».
+
+**Fait**
+- `satcatalog.py` (stdlib) : statut AMSAT → catégories trafiquables (FM, linéaire,
+  digipeater ; pas balises/télémétrie/SSTV/musique ni QO-100) → NORAD (TLE AMSAT, sinon
+  SatNOGS) → fréquences SatNOGS (montée ET descente sur bande radioamateur). Entrées de
+  `satellites.json` prioritaires et toujours présentes. Cache `data/catalog_auto.json`,
+  reconstruit chaque jour en tâche de fond (`catalog_worker`) ; `/api/satellites` ne
+  touche jamais le réseau et retire une entrée auto sans TLE.
+- `data/satellites.json` : AO-123 ajouté à la main (145,850 / 435,400, CTCSS 67 Hz).
+- Vérifié sur une instance de test (port 8099) : autotest navigateur 24/24, 314
+  passages / 48 h, aucun « TLE absents ». JB a relancé son instance : 31 satellites.
+- `Lancer JB-SATRACK.bat` : onglet Firefox (`-new-tab`), à côté de Py-APRS ; ne relance
+  pas le serveur s'il tourne déjà.
+- PRODUIT.md §2 révisé (la décision d'origine est conservée), CHANGELOG « Non publié »,
+  CLAUDE.md (module partagé avec l'horloge).
+- Commit sur la branche `catalogue-auto` (issue de `packaging-linux`), puis **reporté seul
+  dans `master` le 2026-09-24** (cherry-pick : le travail `packaging-linux`, jamais testé en
+  CI, reste sur sa branche).
+
+**Décisions** (→ DECISIONS.md)
+- Catalogue automatique des trafiquables + ISS (révise PRODUIT.md §2).
+
+**Prochaines étapes** (→ TODO.md)
+- Vérifier le CTCSS d'AO-91 (catalogue : 67 Hz ; SatNOGS : « plus de CTCSS » depuis 06/2026).
+- Colonne « Élév. max » parfois fausse dans la liste (ISS 14:51 : 28° affichés, qualité
+  « Basse » cohérente avec 20° ; RS-44 : 18° pour « Rasant »).
+
 ## 2026-09-11 — Kiosque HDMI autonome sur JB-SERVER
 
 **Fait** (accord de JB)
