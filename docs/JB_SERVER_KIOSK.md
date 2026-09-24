@@ -10,14 +10,14 @@ fiche décrit l'instance Linux autonome affichée sur l'écran HDMI de JB-SERVER
 - Commander le kiosque depuis Windows par SSH, sans clavier ni souris.
 - Conserver un démarrage manuel pendant la période d'essai.
 
-Le code déployé vient du commit `550ec88` de `master`. La release précédente
-`bd83cb0` est conservée sur le serveur pour un retour arrière immédiat.
+Le code déployé vient du commit `714a38b` de `master`. La release précédente
+`550ec88` est conservée sur le serveur pour un retour arrière immédiat.
 
 ## Installation réelle
 
 | Élément | Emplacement / comportement |
 | --- | --- |
-| Code | `/opt/jb-satrack-kiosk/releases/550ec88` |
+| Code | `/opt/jb-satrack-kiosk/releases/714a38b` |
 | Version active | lien `/opt/jb-satrack-kiosk/current` |
 | Données Linux | `/opt/jb-satrack-kiosk/data` |
 | Profil navigateur | `/home/jb-kiosk/snap/chromium/common/kiosk-profile` |
@@ -111,6 +111,9 @@ Cage/Chromium et services critiques, puis retour volontaire à l'état arrêté.
 La mise à jour suivante vers `550ec88` corrige la fusion des TLE homonymes :
 l'ISS réelle (NORAD 25544, époque `26267…`) est de nouveau retenue. Le contrôle
 Chromium a confirmé quatre passages ISS dans les 40 premières lignes rendues.
+La mise à jour vers `714a38b` rétablit les passages déjà commencés et précise
+la bissection du LOS. L'autotest Chromium a réussi ses 25 contrôles ; IO-117,
+déjà levé, apparaissait en première ligne avec son AOS passé et le bandeau actif.
 
 ## Sauvegarde et retour arrière
 
@@ -123,6 +126,9 @@ SHA-256 ont été vérifiées.
 La sauvegarde précédant `550ec88` se trouve dans
 `/var/backups/jb-system-ia/jbsatrack-kiosk-20260924-pre-550ec88` ; ses archives
 de données et de profil Chromium ont également été vérifiées par SHA-256.
+La sauvegarde précédant `714a38b` se trouve dans
+`/var/backups/jb-system-ia/jbsatrack-kiosk-20260924-pre-714a38b`, avec les mêmes
+contrôles SHA-256.
 
 Retour immédiat : arrêter les deux unités, terminer uniquement `jb-kiosk`, puis
 revenir à `tty1`. Les unités sont statiques et non activées au démarrage. Pour
