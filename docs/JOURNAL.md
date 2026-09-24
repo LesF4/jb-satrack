@@ -26,6 +26,8 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 **Prochaines étapes**
 - Kiosque JB-SERVER : même défaut → prompt ChatGPT `PROMPT_CHATGPT_KIOSQUE_20260924c.md`.
+  **Fait par ChatGPT** : kiosque sur `714a38b`, autotest Chromium 25/25, IO-117 levé affiché en
+  tête ; retour arrière `releases/550ec88` ; doc `48b7935`.
 
 ## 2026-09-24 (suite) — ISS disparue : orbite de 2023 dans le cache TLE
 

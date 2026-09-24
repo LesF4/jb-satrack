@@ -8,7 +8,7 @@
       est mise en avant ; APRS reste dans l'onglet « Radio de l'ISS »).
 - [x] 2026-09-24 — Étendre le catalogue : automatique, 31 satellites trafiquables (`satcatalog.py`).
 - [x] 2026-09-24 — Passage déjà commencé invisible (IO-117 à 8°, « Rien au-dessus de toi ») :
-      `findPasses` remonte au lever ; LOS précis. Kiosque JB-SERVER à mettre à jour.
+      `findPasses` remonte au lever ; LOS précis. Kiosque JB-SERVER à jour (`714a38b`).
 - [ ] Robustifier le parsing ARISS (fallback propre si la mise en page change).
 
 ## Idées / plus tard
