@@ -4,6 +4,29 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-24 (suite) — ISS disparue : orbite de 2023 dans le cache TLE
+
+**Contexte**
+- JB : l'horloge annonce l'ISS à 14:51, JB-SATRACK n'a plus aucun passage ISS. « Je ne
+  sais pas qui est juste. » Même station (47,7708 / 7,375, JN37QS) et même seuil des deux côtés.
+
+**Cause**
+- `tle_cache.json` : « ISS (ZARYA) » avec NORAD **99207** et une orbite du **06/01/2023**.
+  SatNOGS publie une vieille fiche ISS sous un numéro provisoire ; `_parse_satnogs` croyait
+  `norad_cat_id`, et `merged` était indexé **par nom** : la vieille fiche a écrasé la vraie.
+  La page (recherche par NORAD 25544, puis par nom) tombait sur l'orbite de 2023.
+  L'horloge (NORAD lu dans la ligne 1) avait raison.
+
+**Fait**
+- NORAD toujours lu dans la ligne 1 ; à nom + NORAD égaux, la fiche la plus récente gagne ;
+  homonymes conservés sous « nom [NORAD] » au lieu de s'écraser. Autotest reproduisant le cas.
+- Cache réécrit avec le code corrigé : ISS 25544, époque 26267.14.
+
+**Prochaines étapes**
+- JB relance JB-SATRACK (l'ancien code recasserait le cache au rafraîchissement horaire).
+- Kiosque JB-SERVER : même défaut → mise à jour via ChatGPT.
+
+
 ## 2026-09-24 (suite) — AO-91 : fréquences inversées et CTCSS périmé
 
 **Fait**

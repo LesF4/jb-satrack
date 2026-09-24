@@ -265,13 +265,16 @@ def _parse_satnogs(text):
         if not (l1.startswith("1 ") and l2.startswith("2 ")):
             continue
         name = re.sub(r"^0 +", "", (e.get("tle0") or "").strip()) or ("NORAD %s" % e.get("norad_cat_id"))
-        nd = e.get("norad_cat_id")
-        try:
-            nd = int(nd)
-        except (TypeError, ValueError):
-            m = re.match(r"1 (\d+)", l1)
-            nd = int(m.group(1)) if m else None
-        out[name] = {"name": name, "l1": l1, "l2": l2, "norad": nd}
+        # Le NORAD fiable est celui écrit DANS la ligne 1, pas `norad_cat_id` : SatNOGS
+        # publie aussi de vieilles fiches sous un numéro provisoire (le 24/09/2026, un
+        # « ISS (ZARYA) » de janvier 2023 déclaré 99207 a remplacé la vraie ISS).
+        m = re.match(r"1 +(\d+)", l1)
+        nd = int(m.group(1)) if m else e.get("norad_cat_id")
+        # Même nom et même NORAD (la vraie ISS et sa vieille fiche) : la plus récente gagne.
+        key = "%s#%s" % (name, nd)
+        if key in out and _tle_epoch(out[key]["l1"]) >= _tle_epoch(l1):
+            continue
+        out[key] = {"name": name, "l1": l1, "l2": l2, "norad": nd}
     return out
 
 
@@ -361,9 +364,13 @@ def refresh_tle(force=False):
             errors.append("%s: %s" % (_tle_host(url), e))
             log("TLE %s ÉCHEC : %s" % (_tle_host(url), e))
 
-    merged = {r["name"]: {"name": r["name"], "l1": r["l1"], "l2": r["l2"],
-                          "norad": r.get("norad")}
-              for r in pool.values()}
+    # Un nom peut être partagé par deux satellites (ou une vieille fiche) : le plus
+    # récent garde le nom, les autres reçoivent « nom [NORAD] ». Avant, le dernier
+    # arrivé écrasait l'autre, et la page cherchait l'ISS sur une orbite de 2023.
+    merged = {}
+    for r in sorted(pool.values(), key=lambda r: -r["epoch"]):
+        key = r["name"] if r["name"] not in merged else "%s [%s]" % (r["name"], r.get("norad"))
+        merged[key] = {"name": key, "l1": r["l1"], "l2": r["l2"], "norad": r.get("norad")}
 
     if not merged:
         # repli : dernier cache, sinon fichier embarqué
@@ -1052,6 +1059,23 @@ def selftest():
             if k not in pool or r["epoch"] > pool[k]["epoch"]:
                 pool[k] = r
     assert len(pool) == 1 and pool[25544]["name"] == "ISS (ZARYA)", "fusion TLE : le plus récent doit gagner"
+
+    # SatNOGS : NORAD pris dans la ligne 1 ; deux fiches homonymes ne s'écrasent pas.
+    vieille = {"tle0": "0 ISS (ZARYA)", "norad_cat_id": 99207,
+               "tle1": "1 25544U 98067A   23006.23627000  .00016717  00000-0  30000-3 0  9990",
+               "tle2": "2 25544  51.6400 200.0000 0005000  90.0000 270.0000 15.50000000400000"}
+    fraiche = dict(vieille, norad_cat_id=25544,
+                   tle1="1 25544U 98067A   26267.14191496  .00016717  00000-0  30000-3 0  9990")
+    sn = _parse_satnogs(json.dumps([fraiche, vieille]))
+    assert len(sn) == 1 and {r["norad"] for r in sn.values()} == {25544}, sn
+    sn_inverse = _parse_satnogs(json.dumps([vieille, fraiche]))
+    assert list(sn_inverse.values())[0]["l1"] == list(sn.values())[0]["l1"], "l'ordre des fiches change le résultat"
+    pool = {}
+    for r in sn.values():
+        r["epoch"] = _tle_epoch(r["l1"])
+        if r["norad"] not in pool or r["epoch"] > pool[r["norad"]]["epoch"]:
+            pool[r["norad"]] = r
+    assert pool[25544]["l1"].startswith("1 25544U 98067A   26267"), "ISS : l'orbite de 2023 a gagné"
 
     # Catalogue automatique : classement AMSAT/SatNOGS (satcatalog.py).
     satcatalog.selftest()
