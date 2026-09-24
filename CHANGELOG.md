@@ -8,6 +8,13 @@ ci-dessous est conservé.
 
 ## Non publié — 2026-09-24
 
+- **Passage déjà commencé de nouveau affiché.** Un satellite déjà levé au moment du
+  calcul était ignoré (seuls les levers étaient cherchés) : le 24/09 à 15:25, IO-117 à
+  8° mais bandeau « Rien au-dessus de toi » et absent de la liste. `findPasses` remonte
+  désormais jusqu'au lever (3 h au plus). Même correction dans l'horloge JB-PIXBAR.
+- **LOS précis.** La bissection du coucher restait collée au début de l'intervalle :
+  fin de passage annoncée jusqu'à 30 s trop tôt. Corrigé (et dans l'horloge).
+
 - **Catalogue automatique : tous les satellites radioamateurs trafiquables + ISS.**
   Décision de F4MAJ du 24/09 (voir `PRODUIT.md` §2, qui disait l'inverse). Nouveau
   module `satcatalog.py` : liste du statut AMSAT, catégories qu'on peut trafiquer

@@ -4,6 +4,29 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-24 (suite) — Passage en cours invisible ; LOS 30 s trop tôt
+
+**Contexte**
+- JB compare l'horloge et JB-SATRACK à 15:25 : l'horloge suit SO-50 (qui finissait) et
+  IO-117, JB-SATRACK dit « Rien au-dessus de toi » alors qu'IO-117 est à 8°.
+
+**Cause**
+- `findPasses` ne détecte que les levers (élévation qui passe de ≤ 0 à > 0) : un
+  satellite déjà levé au moment du calcul (ouverture de la page, recalcul) était ignoré
+  jusqu'à son passage suivant. L'horloge remontait déjà au lever (30 min max).
+- En passant : `refine` supposait toujours un lever ; au coucher il renvoyait le début
+  de l'intervalle → LOS jusqu'à 30 s trop tôt. Même défaut dans l'horloge.
+
+**Fait**
+- Retour au lever (3 h max) dans `findPasses` ; bissection correcte dans les deux sens.
+  Autotest client 25/25 (nouveau cas « passage en cours »). Vérifié sur la vraie page :
+  « IO-117 est exploitable en ce moment », en tête de liste.
+- Horloge : même bissection, retour au lever porté de 30 min à 3 h (IO-117 dure ~46 min),
+  autotest ajouté, déployé.
+
+**Prochaines étapes**
+- Kiosque JB-SERVER : même défaut → prompt ChatGPT `PROMPT_CHATGPT_KIOSQUE_20260924c.md`.
+
 ## 2026-09-24 (suite) — ISS disparue : orbite de 2023 dans le cache TLE
 
 **Contexte**

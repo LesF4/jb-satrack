@@ -67,6 +67,15 @@ function findPasses(rec, fromMs, hours, minEl) {
   const end = fromMs + hours * 3600e3;
   const STEP = 30e3;
   let prevEl = elevationAt(rec, fromMs), t = fromMs + STEP;
+  /* Satellite déjà levé au moment du calcul : sans ce retour en arrière, son
+     passage en cours disparaissait (seuls les levers sont détectés) — IO-117 à 8°
+     le 24/09 à 15:25, bandeau « Rien au-dessus de toi ». On remonte jusqu'à son
+     lever (3 h au plus : un passage LEO/MEO dure bien moins). */
+  if (prevEl > 0) {
+    let back = fromMs;
+    while (elevationAt(rec, back) > 0 && back > fromMs - 3 * 3600e3) back -= STEP;
+    prevEl = elevationAt(rec, back); t = back + STEP;
+  }
 
   while (t < end) {
     const el = elevationAt(rec, t);
@@ -106,9 +115,12 @@ function findPasses(rec, fromMs, hours, minEl) {
 }
 
 function refine(rec, lo, hi) {                        // bisection sur el = 0
+  /* Au lever comme au coucher : avant le 24/09 le coucher restait collé à lo,
+     LOS jusqu'à 30 s trop tôt. */
+  const upAtLo = elevationAt(rec, lo) > 0;
   for (let i = 0; i < 18; i++) {
     const mid = (lo + hi) / 2;
-    if (elevationAt(rec, mid) > 0) hi = mid; else lo = mid;
+    if ((elevationAt(rec, mid) > 0) !== upAtLo) hi = mid; else lo = mid;
   }
   return (lo + hi) / 2;
 }
@@ -1966,6 +1978,12 @@ function selfTest() {
   elevationAt = (_r, ms) => 30 - (25 / 160000) * (ms - 500) * (ms - 500);  // 5° à t=100 et t=900
   const cA = crossEl(null, 0, 500, 5), cB = crossEl(null, 500, 1000, 5);
   ok(Math.abs(cA - 100) < 3 && Math.abs(cB - 900) < 3, 'crossEl : les deux franchissements du seuil');
+  /* findPasses : un passage déjà commencé doit être trouvé (lever dans le passé),
+     sinon le bandeau dit « Rien au-dessus de toi » alors qu'un satellite est levé. */
+  elevationAt = (_r, ms) => 30 - (30 / 3.6e11) * ms * ms;                 // levé de -10 à +10 min
+  const fpLive = findPasses(null, 0, 1, 5);
+  ok(fpLive.length === 1 && Math.abs(fpLive[0].aos + 600e3) < 2000 && Math.abs(fpLive[0].los - 600e3) < 2000,
+     'findPasses : passage en cours retrouvé avec son vrai lever');
   elevationAt = _elevAt;
 
   /* Locator <-> lat/lon : « Me localiser » convertit la position de l'appareil

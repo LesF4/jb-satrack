@@ -7,9 +7,8 @@
 - [ ] **Sous-menu APRS / SSTV / données** pour l'ISS (aujourd'hui seule la phonie
       est mise en avant ; APRS reste dans l'onglet « Radio de l'ISS »).
 - [x] 2026-09-24 — Étendre le catalogue : automatique, 31 satellites trafiquables (`satcatalog.py`).
-- [ ] **Passage déjà commencé invisible** (vu le 24/09 15:25) : IO-117 à 8° (15:13 → 16:00,
-      max 12°), mais bandeau « Rien au-dessus de toi » et absent de « Prochains passages ».
-      L'horloge, elle, le suit. À vérifier avant de corriger.
+- [x] 2026-09-24 — Passage déjà commencé invisible (IO-117 à 8°, « Rien au-dessus de toi ») :
+      `findPasses` remonte au lever ; LOS précis. Kiosque JB-SERVER à mettre à jour.
 - [ ] Robustifier le parsing ARISS (fallback propre si la mise en page change).
 
 ## Idées / plus tard
