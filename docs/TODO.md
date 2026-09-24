@@ -4,8 +4,6 @@
 - [ ] Rien en cours.
 
 ## À faire
-- [ ] Vérifier le CTCSS d'AO-91 (67 Hz au catalogue, SatNOGS : plus de CTCSS depuis 06/2026).
-- [ ] Colonne « Élév. max » parfois fausse dans la liste des passages (ISS 28° vs qualité Basse).
 - [ ] **Sous-menu APRS / SSTV / données** pour l'ISS (aujourd'hui seule la phonie
       est mise en avant ; APRS reste dans l'onglet « Radio de l'ISS »).
 - [x] 2026-09-24 — Étendre le catalogue : automatique, 31 satellites trafiquables (`satcatalog.py`).
@@ -21,6 +19,8 @@
       tray) devient souhaitable — le code web ne bouge pas.
 
 ## Fait (archive)
+- [x] 2026-09-24 — AO-91 : fréquences remises dans le bon sens (435,250 ↑ / 145,960 ↓), sans CTCSS.
+- [x] 2026-09-24 — « Élév. max » vérifiée juste (fausse alerte : capture mal lue).
 - [x] 2026-09-08 — Bouton « Me localiser » (position de l'ordinateur → locator +
       ville + fuseau, géocodage inverse OpenStreetMap) ; la maison se déplace
       enfin sur la carte après un changement de position (v2.0.3).

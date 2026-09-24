@@ -85,13 +85,13 @@
       "priority": 3,
       "modes": [
         {
-          "label": "Répéteur FM V/U",
+          "label": "Répéteur FM U/V",
           "type": "fm",
-          "up": 145.96,
-          "down": 435.25,
+          "up": 435.25,
+          "down": 145.96,
           "mod": "FM",
-          "ctcss": 67.0,
-          "note": "Batterie fatiguée : souvent actif seulement en plein soleil."
+          "ctcss": null,
+          "note": "Montée 435,250 / descente 145,960, sans CTCSS (répéteur déclenché par porteuse, AMSAT 2026). Batterie fatiguée : souvent actif seulement en plein soleil."
         }
       ]
     },

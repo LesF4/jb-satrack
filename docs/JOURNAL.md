@@ -4,6 +4,17 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-09-24 (suite) — AO-91 : fréquences inversées et CTCSS périmé
+
+**Fait**
+- `satellites.json` : AO-91 avait **montée et descente inversées** (145,960 ↑ / 435,250 ↓)
+  et un CTCSS 67 Hz. AMSAT (page AO-91, 2026) : **montée 435,250, descente 145,960, sans
+  tonalité** (répéteur déclenché par porteuse, batterie fatiguée). Corrigé.
+- Contrôle croisé de toutes les entrées manuelles avec SatNOGS : seule AO-91 était fausse.
+- Vérifié : la colonne « Élév. max » est juste (ISS 14:51 = 19,8° dans l'appli, comme le
+  calcul indépendant de JB-PIXBAR) ; le « 28° » venait d'une mauvaise lecture d'une capture.
+
+
 ## 2026-09-24 — Catalogue automatique (31 satellites trafiquables) + lanceur Firefox
 
 **Contexte**
