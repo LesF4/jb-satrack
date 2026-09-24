@@ -10,14 +10,14 @@ fiche décrit l'instance Linux autonome affichée sur l'écran HDMI de JB-SERVER
 - Commander le kiosque depuis Windows par SSH, sans clavier ni souris.
 - Conserver un démarrage manuel pendant la période d'essai.
 
-Le code déployé vient du commit `bd83cb0` de `master`. La release précédente
-`47402ab` est conservée sur le serveur pour un retour arrière immédiat.
+Le code déployé vient du commit `550ec88` de `master`. La release précédente
+`bd83cb0` est conservée sur le serveur pour un retour arrière immédiat.
 
 ## Installation réelle
 
 | Élément | Emplacement / comportement |
 | --- | --- |
-| Code | `/opt/jb-satrack-kiosk/releases/bd83cb0` |
+| Code | `/opt/jb-satrack-kiosk/releases/550ec88` |
 | Version active | lien `/opt/jb-satrack-kiosk/current` |
 | Données Linux | `/opt/jb-satrack-kiosk/data` |
 | Profil navigateur | `/home/jb-kiosk/snap/chromium/common/kiosk-profile` |
@@ -34,7 +34,7 @@ Chromium stable via le Snap Canonical. Aucun redémarrage n'a été nécessaire.
 ## Réglages validés, catalogue et TLE
 
 - Indicatif `F4MAJ`, locator `JN37QS`, ville `Illzach`, fuseau `Europe/Paris`.
-- 1 624 TLE observés après le rafraîchissement complet du 24 septembre.
+- 1 717 TLE observés après le rafraîchissement complet du 24 septembre.
 - Rafraîchissement forcé après chaque lancement, puis toutes les heures tant
   que l'application fonctionne. Le bouton manuel n'est pas nécessaire.
 - Le timer ne démarre pas le kiosque au boot de JB-SERVER.
@@ -108,6 +108,9 @@ si un contrôle échoue. Aucun jeton GitHub n'est installé sur JB-SERVER.
 La mise à jour du 24 septembre 2026 vers `bd83cb0` a suivi cette procédure :
 selftest hors production, bascule atomique, contrôle de santé, catalogue, rendu
 Cage/Chromium et services critiques, puis retour volontaire à l'état arrêté.
+La mise à jour suivante vers `550ec88` corrige la fusion des TLE homonymes :
+l'ISS réelle (NORAD 25544, époque `26267…`) est de nouveau retenue. Le contrôle
+Chromium a confirmé quatre passages ISS dans les 40 premières lignes rendues.
 
 ## Sauvegarde et retour arrière
 
@@ -117,6 +120,9 @@ Inventaires avant/après, sources, unités et documentation sont dans
 La sauvegarde précédant `bd83cb0` se trouve dans
 `/var/backups/jb-system-ia/jbsatrack-kiosk-20260924-pre-bd83cb0` et ses sommes
 SHA-256 ont été vérifiées.
+La sauvegarde précédant `550ec88` se trouve dans
+`/var/backups/jb-system-ia/jbsatrack-kiosk-20260924-pre-550ec88` ; ses archives
+de données et de profil Chromium ont également été vérifiées par SHA-256.
 
 Retour immédiat : arrêter les deux unités, terminer uniquement `jb-kiosk`, puis
 revenir à `tty1`. Les unités sont statiques et non activées au démarrage. Pour
