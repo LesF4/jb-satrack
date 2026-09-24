@@ -26,6 +26,13 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 - JB relance JB-SATRACK (l'ancien code recasserait le cache au rafraîchissement horaire).
 - Kiosque JB-SERVER : même défaut → mise à jour via ChatGPT.
 
+**Clôture (15:18)**
+- JB relancé : l'ISS réapparaît dans JB-SATRACK sur le PC.
+- Kiosque passé à `550ec88` par ChatGPT (`PROMPT_CHATGPT_KIOSQUE_20260924b.md`) : selftest OK,
+  ISS NORAD 25544 époque 26267, orbite 2023 absente, 4 passages ISS dans le rendu Chromium.
+  Retour arrière : `releases/bd83cb0` ; sauvegarde `…/jbsatrack-kiosk-20260924-pre-550ec88`.
+  Doc kiosque `d7a5c3c` (ChatGPT, poussée par Claude).
+
 
 ## 2026-09-24 (suite) — AO-91 : fréquences inversées et CTCSS périmé
 
