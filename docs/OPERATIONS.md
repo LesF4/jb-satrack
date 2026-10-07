@@ -156,6 +156,8 @@ Procédure suivie à chaque version (exemples réels : v2.0.3, v2.0.4).
    la page Releases), puis transmettre le fichier manuellement — le dépôt est
    **privé**, le destinataire n'a pas besoin de GitHub. Depuis le 2026-10-07, la Release
    **publique** se télécharge aussi sur <https://github.com/LesF4/jb-satrack/releases>.
+   Compteur de téléchargements : badge du README, ou
+   `gh release view vX.Y.Z --repo LesF4/jb-satrack --json assets --jq '.assets[] | "\(.name) \(.downloadCount)"'`.
 
 > Pousser un tag `v*` **publie une Release** : ne le faire qu'avec l'accord de
 > F4MAJ.

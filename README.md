@@ -1,5 +1,8 @@
 # JB-SATRACK
 
+[![Dernière version](https://img.shields.io/github/v/release/LesF4/jb-satrack?label=version&color=ff9f1c)](https://github.com/LesF4/jb-satrack/releases/latest)
+[![Téléchargements](https://img.shields.io/github/downloads/LesF4/jb-satrack/total?label=t%C3%A9l%C3%A9chargements&color=ff9f1c)](https://github.com/LesF4/jb-satrack/releases)
+
 Suivi des satellites radioamateur et de l'ISS : **quand ça passe, sur quelle fréquence, et quoi régler au poste pour suivre le Doppler**.
 Créé par **F4MAJ** (locator JN37QS, Illzach) pour une **antenne omnidirectionnelle fixe** (pas de rotor) et un **Yaesu FTM-500D + Digirig**, mais configurable pour n'importe quelle station. Il tourne en continu sur un petit serveur et se consulte depuis n'importe quel navigateur.
 
