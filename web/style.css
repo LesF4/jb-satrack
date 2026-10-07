@@ -3,7 +3,7 @@
    Direction « Sobre » : gris Tailwind neutres, ambre rationné, surfaces plates
    tenues par un anneau d'un pixel. Deux thèmes, sombre par défaut.
 
-   Les dix règles du socle (voir prototypes/DECISIONS.md) :
+   Les dix règles du socle (voir docs/design/DECISIONS.md) :
     1. Le sans dit les mots, le mono dit les nombres. Jamais l'inverse.
     2. L'accent se mérite : il ne marque que ce qui se passe MAINTENANT.
     3. Une couleur de marque n'est jamais un état.

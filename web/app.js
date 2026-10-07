@@ -306,7 +306,7 @@ const MAP = (function () {
   const WHEEL_PX = 250;   // px de molette par niveau — rendu exactement (mesuré)
   const PINCH_PX = 60;    // px de pincement trackpad par niveau — deltas bien plus fins
   /* Suivi = CENTRAGE, pas confinement. Les 90 px de zone morte de
-     prototypes/DECISIONS.md ont été mesurés à ~60× la vitesse réelle : là, un
+     docs/design/DECISIONS.md ont été mesurés à ~60× la vitesse réelle : là, un
      recentrage continu coûtait cher. En usage réel le satellite avance ~1,5 px/s
      au zoom 4 — la carte glisse d'un pixel et demi par seconde, ça ne coûte
      rien et ça garde le satellite au centre. Il reste une zone morte de 2 px :

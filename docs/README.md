@@ -18,6 +18,7 @@ Index de toute la doc du projet.
 |---|---|
 | [`DECISIONS.md`](DECISIONS.md) | Le **pourquoi** des choix structurants (à lire avant de « corriger » un comportement volontaire) |
 | [`ETAT.md`](ETAT.md) | Instantané de l'état courant : version, stack, sources de données, ce qui marche, limites connues |
+| [`design/DECISIONS.md`](design/DECISIONS.md) · [`design/composants.md`](design/composants.md) | Refonte visuelle : décisions du socle, et analyse des 30 écarts balisage/logique composant par composant |
 | [`JOURNAL.md`](JOURNAL.md) | Journal d'activité, entrée la plus récente en haut |
 | [`TODO.md`](TODO.md) | Ce qui reste à faire |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | Journal version par version |

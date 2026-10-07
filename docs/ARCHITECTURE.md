@@ -237,7 +237,7 @@ docs/ ARCHITECTURE.md API.md DONNEES.md OPERATIONS.md
 packaging/  build.py jb-satrack.spec installer.iss make_icon.py icon.ico README.md
 .github/workflows/build.yml
 tests/  fake-satellite.js sample-tle.txt   (fixtures d'appoint)
-prototypes/  maquettes HTML de la direction visuelle
+docs/design/  composants.md DECISIONS.md   (analyse et décisions de la refonte visuelle)
 README.md CLAUDE.md DESIGN.md PRODUIT.md CHANGELOG.md MODIFICATIONS.md LICENSE
 Lancer JB-SATRACK.bat  Dockerfile  docker-compose.yml
 ```

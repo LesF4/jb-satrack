@@ -1,7 +1,7 @@
 # JB-SATRACK — système de design
 
-Ce fichier est le seul artefact durable de la refonte d'interface. Le bac à sable
-`prototypes/` est jetable ; ceci ne l'est pas. Toute décision prise ici a été
+Ce fichier est le seul artefact durable de la refonte d'interface. Le bac à sable de
+maquettes a été retiré du dépôt (il reste `docs/design/`) ; ceci est durable. Toute décision prise ici a été
 éprouvée sur maquette avant d'être promue dans `web/`.
 
 ---
@@ -252,7 +252,7 @@ longueurs de chemin passent de 1 796 à 2 829 px.
 ## 5. Bugs de production corrigés au passage
 
 Relevés en lisant le code, pas en le devinant — le détail des 30 écarts
-balisage/logique est dans `prototypes/composants.md`.
+balisage/logique est dans `docs/design/composants.md`.
 
 | Bug | Symptôme | Correction |
 |---|---|---|
@@ -276,9 +276,10 @@ balisage/logique est dans `prototypes/composants.md`.
 - **Rebuild PyInstaller** sous Windows pour que le `.exe` reçoive la refonte.
   Penser au `--add-data` pour `data/vendor/fonts/`, ou laisser les polices se
   télécharger au premier lancement comme le fait déjà Leaflet.
-- **Supprimer `prototypes/`** une fois ce document relu : c'est un bac à sable,
-  il a rempli son office.
-- Les écarts balisage/logique non traités de `prototypes/composants.md`,
+- **Fait :** les maquettes `prototypes/` sont retirées du dépôt ; l'analyse
+  (`composants.md`) et les décisions du socle (`DECISIONS.md`) sont gardées dans
+  `docs/design/`.
+- Les écarts balisage/logique non traités de `docs/design/composants.md`,
   notamment : la légende de carte qui décrit l'état inverse du rendu, et
   Enter/Échap dans la modale retirés en `1b4772d`.
 - **`mode.state` reste écrit et lu par personne.** `applyIssOverrides()` y pose

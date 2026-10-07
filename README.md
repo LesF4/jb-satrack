@@ -1,9 +1,18 @@
 # JB-SATRACK
 
-Suivi des satellites radioamateur et de l'ISS pour la station **F4MAJ** — locator **JN37QS** (Illzach).
-Conçu pour tourner en permanence sur JB-SERVER et se consulter depuis n'importe quel navigateur.
+Suivi des satellites radioamateur et de l'ISS : **quand ça passe, sur quelle fréquence, et quoi régler au poste pour suivre le Doppler**.
+Créé par **F4MAJ** (locator JN37QS, Illzach) pour une **antenne omnidirectionnelle fixe** (pas de rotor) et un **Yaesu FTM-500D + Digirig**, mais configurable pour n'importe quelle station. Il tourne en continu sur un petit serveur et se consulte depuis n'importe quel navigateur.
 
-Pensé pour une **antenne omnidirectionnelle fixe à 9 m** (pas de rotor) et un **Yaesu FTM-500D + Digirig**.
+![JB-SATRACK : passage en cours, carte, télémétrie et prochains passages](docs/img/vue-ensemble.png)
+
+## En bref
+
+- **Pour qui ?** Les radioamateurs qui font du trafic satellite (FM, linéaire, digipeaters, ISS) avec une installation simple, sans rotor ni commande CAT.
+- **Ce qui le distingue :** un passage qui culmine très haut est signalé *Zénith* (une antenne verticale a un cône de silence au-dessus de la tête), et le **plan de tuning Doppler** est calculé pour *ce* passage depuis *ta* station, exportable au format CHIRP.
+- **Rien à installer pour le calcul :** Python 3.8+ ou l'application Windows, aucune dépendance. La propagation SGP4 tourne dans le navigateur.
+- **Démarrer :** sous Windows, télécharge l'installeur ou le zip portable dans les [Releases](https://github.com/LesF4/jb-satrack/releases). Sinon `python3 app.py` puis ouvre <http://127.0.0.1:8073> (Docker : voir [Installation](#installation)). Au premier lancement : **Réglages → indicatif → « Me localiser » → Enregistrer**.
+
+> **Licence.** Le code est publié pour être consulté ; il n'est **pas** sous licence libre. Voir [`LICENSE`](LICENSE) (© F4MAJ, tous droits réservés). Pour l'utiliser ou le partager, demande d'abord l'accord de F4MAJ (ouvre une *issue* sur ce dépôt).
 
 ---
 
@@ -28,7 +37,7 @@ Pensé pour une **antenne omnidirectionnelle fixe à 9 m** (pas de rotor) et un 
 ### Docker (recommandé sur JB-SERVER)
 
 ```bash
-git clone <url-de-ton-depot> jb-satrack
+git clone https://github.com/LesF4/jb-satrack.git
 cd jb-satrack
 docker compose up -d
 ```
@@ -71,7 +80,7 @@ F4MAJ) : il explique à celui qui installe l'appli comment régler sa station �
 **Réglages → indicatif → « Me localiser » → Enregistrer**.
 
 La CI (`.github/workflows/build.yml`) reconstruit portable + installeur à chaque
-tag `v*` et les joint à la Release GitHub (dépôt privé).
+tag `v*` et les joint à la Release GitHub correspondante.
 
 ## Configuration
 
