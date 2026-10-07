@@ -5,8 +5,9 @@ Dernière mise à jour : 2026-09-24
 > **2026-09-24** : catalogue automatique (31 satellites radioamateurs trafiquables + ISS,
 > `satcatalog.py`, cache `data/catalog_auto.json`) et lanceur Firefox — dans `master` (reporté depuis la branche `catalogue-auto`).
 
-- **Statut** : actif. Version **v2.0.4** (tags Git `v*` + Releases GitHub).
-- **Dépôt** : `F4MAJ/jb-satrack` (GitHub, **privé**). Branches : `master` (ligne
+- **Statut** : actif. Version **v2.1.0** (tags Git `v*` + Releases GitHub).
+- **Dépôt** : `F4MAJ/jb-satrack` (GitHub, **privé**, travail) + copie **publique**
+  `LesF4/jb-satrack` (même `master`, remote `lesf4`). Branches : `master` (ligne
   principale) · `v1` (état figé d'avant la refonte de septembre 2026).
 - **Chemin local** : `D:\ClaudeProjets\jb-satrack` (dossier unique — l'ancien
   `newapp\…` et les copies/zip parasites ont été supprimés le 2026-09-06).

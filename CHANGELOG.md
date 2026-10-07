@@ -6,8 +6,11 @@ Releases v2.0.3 et v2.0.4 restent sur le dépôt privé F4MAJ. Les Releases
 v2.0.0–v2.0.2 (et leurs tags) ont été supprimées le 2026-09-08, périmées et
 jamais téléchargées. L'historique texte ci-dessous est conservé.
 
-## Non publié — 2026-09-24
+## v2.1.0 — 2026-10-07
 
+- **Dépôt public.** Copie publique `LesF4/jb-satrack` (même `master`), README d'accueil avec
+  capture d'écran ; maquettes `prototypes/` et prompts du kiosque retirés (analyse gardée
+  dans `docs/design/`). Aucun changement de code applicatif.
 - **Passage déjà commencé de nouveau affiché.** Un satellite déjà levé au moment du
   calcul était ignoré (seuls les levers étaient cherchés) : le 24/09 à 15:25, IO-117 à
   8° mais bandeau « Rien au-dessus de toi » et absent de la liste. `findPasses` remonte

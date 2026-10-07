@@ -139,8 +139,12 @@ Procédure suivie à chaque version (exemples réels : v2.0.3, v2.0.4).
    changé, pourquoi), `docs/JOURNAL.md` (entrée datée), `docs/DECISIONS.md` si un
    choix a été tranché, `docs/API.md` / `ETAT.md` / etc. si le comportement
    bouge, et le `JOURNAL.md` de l'atelier commun.
-4. `git commit` + `git push origin master`.
-5. `git tag vX.Y.Z master && git push origin vX.Y.Z`.
+4. `git commit` + `git push origin master` **et** `git push lesf4 master` (copie
+   publique ; `gh auth switch --user LesF4` avant, `--user F4MAJ` après).
+5. `git tag vX.Y.Z master`, puis `git push lesf4 vX.Y.Z` pour la Release **publique**
+   (la CI de LesF4 compile ; suivi avec `--repo LesF4/jb-satrack`). `git push origin
+   vX.Y.Z` seulement si une Release du dépôt privé est aussi voulue. **Ne jamais
+   pousser `--tags`** : les anciens tags relanceraient des compilations périmées.
 6. La **CI** (`.github/workflows/build.yml`) construit portable + installeur et
    crée / met à jour la **Release** GitHub avec les deux fichiers (~1 min 20 s).
    Suivi : `gh run watch <id> --repo F4MAJ/jb-satrack --exit-status`.
@@ -150,7 +154,8 @@ Procédure suivie à chaque version (exemples réels : v2.0.3, v2.0.4).
    racine).
 8. Pour partager : `gh release download vX.Y.Z -p "JB-SATRACK-portable.zip"` (ou
    la page Releases), puis transmettre le fichier manuellement — le dépôt est
-   **privé**, le destinataire n'a pas besoin de GitHub.
+   **privé**, le destinataire n'a pas besoin de GitHub. Depuis le 2026-10-07, la Release
+   **publique** se télécharge aussi sur <https://github.com/LesF4/jb-satrack/releases>.
 
 > Pousser un tag `v*` **publie une Release** : ne le faire qu'avec l'accord de
 > F4MAJ.

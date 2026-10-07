@@ -4,6 +4,28 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-10-07 — Copie publique sur LesF4 et Release v2.1.0
+
+**Contexte**
+- JB veut partager et rendre visible JB-SATRACK : copie sur le GitHub de la communauté
+  `LesF4`, sans toucher au dépôt privé `F4MAJ`.
+
+**Fait**
+- Dépôt public `LesF4/jb-satrack` créé (remote `lesf4`), même `master` que `origin`. Licence
+  inchangée (« tous droits réservés », voir `LICENSE`) : code visible, pas réutilisable.
+- Historique scanné (48 commits) avant publication : aucune clé, token, IP privée ni e-mail.
+- Retirés du dépôt : les 3 `PROMPT_CHATGPT_KIOSQUE_*.md` (cités dans les entrées du 24/09,
+  toujours dans l'historique git) et les maquettes `prototypes/`. `composants.md` et
+  `DECISIONS.md` gardés dans `docs/design/`.
+- README : capture, bloc « En bref », mention de licence. Version portée à **2.1.0**
+  (CHANGELOG, `installer.iss`, `packaging/README.md`, `ETAT.md`). Autotests : serveur OK,
+  client 25/25.
+- Release v2.1.0 : tag poussé sur `lesf4` seulement, la CI de LesF4 compile portable + installeur.
+
+**À savoir**
+- Ne jamais `git push --tags` vers `lesf4` : `v1.0.0`…`v2.0.4` relanceraient des builds périmés.
+- Les Releases v2.0.3 / v2.0.4 restent sur le dépôt privé.
+
 ## 2026-09-24 (suite) — Passage en cours invisible ; LOS 30 s trop tôt
 
 **Contexte**

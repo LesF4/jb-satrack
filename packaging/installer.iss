@@ -3,7 +3,7 @@
 ; Prérequis : packaging\dist\JB-SATRACK\  (produit par PyInstaller via build.py).
 
 #define AppName      "JB-SATRACK"
-#define AppVersion   "2.0.4"          ; la CI la réécrit depuis le tag ; garder synchro avec CHANGELOG.md
+#define AppVersion   "2.1.0"          ; la CI la réécrit depuis le tag ; garder synchro avec CHANGELOG.md
 #define AppPublisher "F4MAJ"
 #define AppURL       "https://github.com/F4MAJ/jb-satrack"
 #define AppExe       "JB-SATRACK.exe"
