@@ -6,7 +6,7 @@ Releases v2.0.3 et v2.0.4 restent sur le dépôt privé F4MAJ. Les Releases
 v2.0.0–v2.0.2 (et leurs tags) ont été supprimées le 2026-09-08, périmées et
 jamais téléchargées. L'historique texte ci-dessous est conservé.
 
-## Non publié — 2026-10-08
+## v2.1.1 — 2026-10-08
 
 - **Tableau des passages : « Culmine » et « En cours ».** Une colonne donne l'heure où le
   satellite passe au plus haut, et une étiquette « En cours » marque les passages entre AOS et

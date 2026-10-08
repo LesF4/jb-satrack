@@ -4,6 +4,22 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-10-08 — Tableau des passages : Culmine et En cours ; Release v2.1.1
+
+**Contexte**
+- JB a cru que l'ISS n'était pas au-dessus de lui : la ligne affichait l'AOS (15:07) alors que
+  le satellite ne culminait qu'à 15:13. Données vérifiées (TLE du jour, station JN37QS, calcul
+  indépendant avec `satellite.js`) : le tracker était correct, c'est l'affichage qui prêtait à confusion.
+
+**Fait**
+- Colonne « Culmine » et étiquette « En cours » (rafraîchie par `tickClock`), bulles d'aide AOS /
+  Culmine. Autotest client 27/27 (2 contrôles de plus, `passLive`).
+- Release **v2.1.1** : tag poussé sur `lesf4` seulement, comme la v2.1.0.
+
+**À savoir**
+- Piste évoquée, non décidée : liaison CAT avec un IC-705 (Doppler automatique via `rigctld`). Le
+  FTM-500D n'a pas de CAT d'après les retours d'utilisateurs ; plein-duplex de l'IC-705 à vérifier.
+
 ## 2026-10-07 — Copie publique sur LesF4 et Release v2.1.0
 
 **Contexte**
