@@ -13,7 +13,7 @@ l'installeur, optionnel) sont des outils externes.
 pip install pyinstaller
 python packaging\build.py                 :: -> packaging\dist\JB-SATRACK\  (dossier applicatif)
 python packaging\build.py --zip           :: + packaging\dist\JB-SATRACK-portable.zip  (à envoyer tel quel)
-python packaging\build.py --installer     :: + packaging\dist\JB-SATRACK-Setup-2.1.1.exe
+python packaging\build.py --installer     :: + packaging\dist\JB-SATRACK-Setup-2.1.2.exe
 python packaging\build.py --clean --zip   :: repart de zéro, puis zip
 ```
 

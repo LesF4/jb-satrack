@@ -4,6 +4,17 @@ Entrée la plus récente en haut. Format : voir `D:\ClaudeProjets\_PROJETS\CONVE
 
 <!-- Ajouter la nouvelle entrée juste au-dessus de cette ligne -->
 
+## 2026-10-08 (suite) — Nouvelle icône ; Release v2.1.2
+
+**Contexte**
+- Le raccourci du bureau (qui lance `Lancer JB-SATRACK.bat`) n'avait pas d'icône : fenêtre à
+  engrenages par défaut. L'ancien `packaging/icon.ico` existait mais était terne et jamais branché.
+
+**Fait**
+- `make_icon.py` redessiné : planète, orbite ambre devant/derrière, satellite ; `icon.ico` régénéré
+  (256 à 16 px). Raccourci du bureau pointé sur `packaging/icon.ico` (hors dépôt, sur le poste de JB).
+- Release **v2.1.2** : tag sur `lesf4` seulement. L'exe et l'installeur prennent la nouvelle icône.
+
 ## 2026-10-08 — Tableau des passages : Culmine et En cours ; Release v2.1.1
 
 **Contexte**

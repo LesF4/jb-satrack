@@ -6,6 +6,13 @@ Releases v2.0.3 et v2.0.4 restent sur le dépôt privé F4MAJ. Les Releases
 v2.0.0–v2.0.2 (et leurs tags) ont été supprimées le 2026-09-08, périmées et
 jamais téléchargées. L'historique texte ci-dessous est conservé.
 
+## v2.1.2 — 2026-10-08
+
+- **Nouvelle icône.** Tuile sombre, planète, orbite ambre (l'accent de l'interface) qui passe
+  derrière puis devant, satellite sur la partie avant. Elle remplace l'ancienne, plus terne,
+  pour l'exe, l'installeur et le raccourci du bureau. Lisible jusqu'à 16 px. Toujours générée
+  sans dépendance par `packaging/make_icon.py`. Aucun changement de code applicatif.
+
 ## v2.1.1 — 2026-10-08
 
 - **Tableau des passages : « Culmine » et « En cours ».** Une colonne donne l'heure où le
