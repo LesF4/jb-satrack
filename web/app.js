@@ -218,17 +218,28 @@ function renderTleChip() {
     : info.count + ' satellites, TLE téléchargés ' + age + '.';
 }
 
+/* « En cours » : le satellite est entre son AOS et son LOS. Même définition que
+   la sélection automatique du passage suivi (computeAll). */
+const passLive = (p, t) => t >= p.aos && t <= p.los;
+
 function renderPassTable() {
   const tb = $('passtable');
   tb.innerHTML = '';
-  S.passes.slice(0, 40).forEach((p, i) => {
+  const now = Date.now();
+  const shown = S.passes.slice(0, 40);
+  S.liveKey = shown.map(p => passLive(p, now) ? 1 : 0).join('');   // voir tickClock()
+  shown.forEach((p, i) => {
     const q = quality(p.maxEl, S.station.antenna.cone_of_silence_deg || 75);
+    const live = passLive(p, now);
     const tr = document.createElement('tr');
     tr.className = (S.selectedPass === p ? 'sel' : '');
     tr.innerHTML =
       '<td class="satcell"><span class="satdot" style="background:' + p.color + '"></span>' + p.satName + '</td>' +
       '<td>' + p.modeLabel + '</td>' +
-      '<td>' + hhmmLoc(new Date(p.aos)) + '<span class="loc"> ' + hhmm(new Date(p.aos)) + ' UTC</span></td>' +
+      '<td>' + (live ? '<span class="nowtag">En cours</span>' : '') + hhmmLoc(new Date(p.aos)) +
+        '<span class="loc"> ' + hhmm(new Date(p.aos)) + ' UTC</span></td>' +
+      '<td' + (live && now > p.tca ? ' class="past"' : '') + '>' + hhmmLoc(new Date(p.tca)) +
+        '<span class="loc"> ' + hhmm(new Date(p.tca)) + ' UTC</span></td>' +
       '<td class="num">' + p.maxEl.toFixed(0) + '°</td>' +
       '<td class="num">' + dur(p.duration) + '</td>' +
       '<td>' + (p.mode.down ? mhz(p.mode.down) : '—') + '</td>' +
@@ -759,6 +770,10 @@ function tickClock() {
     renderMemo(); renderOrient();
     if (t > p.los + 5000) computeAll();       // passage terminé : on recalcule
   }
+  /* le tableau liste TOUS les passages : un « En cours » apparaît ou disparaît
+     sans que l'utilisateur ait cliqué quoi que ce soit */
+  if (S.passes && S.passes.length &&
+      S.passes.slice(0, 40).map(q => passLive(q, t) ? 1 : 0).join('') !== S.liveKey) renderPassTable();
   /* hors du bloc ci-dessus : l'alerte porte sur TOUS les passages à venir, pas
      seulement sur celui qu'on suit à l'écran */
   checkAlerts();
@@ -1930,6 +1945,12 @@ function selfTest() {
   ok(dus([P(5, 45)], [t0 + 5 * 60e3]).length === 0, 'alerte : déjà annoncé, pas deux fois');
   ok(dus([P(5, 45), P(8, 60), P(30, 70)]).join() === '45,60',
      'alerte : deux passages dans la fenêtre, le troisième attend');
+
+  // « En cours » du tableau : bornes comprises, avant AOS et après LOS non
+  ok(passLive({ aos: 100, los: 200 }, 150) && passLive({ aos: 100, los: 200 }, 100) &&
+     passLive({ aos: 100, los: 200 }, 200), 'tableau : passage entre AOS et LOS = en cours');
+  ok(!passLive({ aos: 100, los: 200 }, 99) && !passLive({ aos: 100, los: 200 }, 201),
+     'tableau : avant AOS ou après LOS = pas en cours');
 
   // CHIRP : largeur de ligne, split, et tonalité
   const rows = chirpRows(p, plan);

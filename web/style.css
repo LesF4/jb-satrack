@@ -525,6 +525,11 @@ td.num,th.num{text-align:right; font-family:var(--mono); font-variant-numeric:ta
   color:var(--i0); white-space:nowrap; letter-spacing:-.02em;}
 th.num{font-family:var(--sans); color:var(--i2);}
 td .loc{font-family:var(--mono); color:var(--i2); font-size:11px;}
+/* passage commencé : l'étiquette dit « maintenant », la culmination déjà passée s'éteint */
+.nowtag{display:inline-block; margin-right:var(--p2); padding:1px 7px; border-radius:var(--r-control);
+  font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--bg); background:var(--acc);}
+td.past{color:var(--i2);}
 .q{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; white-space:nowrap;}
 .q::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none;}
 .q.good{color:var(--good);} .q.ok{color:var(--warn);} .q.poor{color:var(--i2);}

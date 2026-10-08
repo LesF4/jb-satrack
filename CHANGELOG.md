@@ -6,6 +6,15 @@ Releases v2.0.3 et v2.0.4 restent sur le dépôt privé F4MAJ. Les Releases
 v2.0.0–v2.0.2 (et leurs tags) ont été supprimées le 2026-09-08, périmées et
 jamais téléchargées. L'historique texte ci-dessous est conservé.
 
+## Non publié — 2026-10-08
+
+- **Tableau des passages : « Culmine » et « En cours ».** Une colonne donne l'heure où le
+  satellite passe au plus haut, et une étiquette « En cours » marque les passages entre AOS et
+  LOS (elle apparaît et disparaît toute seule). Auparavant seule l'heure d'AOS était affichée :
+  un passage dont l'AOS tombait dans quelques minutes pouvait passer pour imminent
+  « au-dessus de soi », alors que le satellite était encore à l'horizon. Les bulles d'aide de
+  l'en-tête et l'indication sous le tableau expliquent AOS et Culmine.
+
 ## v2.1.0 — 2026-10-07
 
 - **Dépôt public.** Copie publique `LesF4/jb-satrack` (même `master`), README d'accueil avec

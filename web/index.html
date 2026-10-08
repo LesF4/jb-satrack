@@ -206,14 +206,16 @@ try{var t=localStorage.getItem('jbs-theme');
         <div class="tablewrap">
           <table>
             <thead><tr>
-              <th>Satellite</th><th>Mode</th><th>AOS</th>
+              <th>Satellite</th><th>Mode</th>
+              <th title="Apparition : le satellite passe l'horizon">AOS</th>
+              <th title="Culmination : le satellite est au plus haut, donc au plus proche">Culmine</th>
               <th class="num">Élév. max</th><th class="num">Durée</th>
               <th class="num">Downlink</th><th>Qualité</th>
             </tr></thead>
             <tbody id="passtable"></tbody>
           </table>
         </div>
-        <span class="hint">Heure locale · clique une ligne pour la suivre.</span>
+        <span class="hint">Heure locale · AOS = le satellite apparaît à l'horizon, Culmine = il passe au plus haut · clique une ligne pour la suivre.</span>
       </div>
     </div>
 
